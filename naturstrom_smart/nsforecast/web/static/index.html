@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>naturstrom smart Vorschau</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <h1>naturstrom smart Vorschau</h1>
+  <span class="sub" id="header-sub">wird geladen …</span>
+  <span class="spacer"></span>
+  <span class="badge neutral" id="ha-badge"><span class="dot"></span><span>Home Assistant</span></span>
+</header>
+
+<nav>
+  <button data-tab="overview" aria-current="true">Folgetag</button>
+  <button data-tab="history">Verlauf</button>
+  <button data-tab="setup">Einrichtung</button>
+  <button data-tab="log">Protokoll</button>
+</nav>
+
+<main>
+  <section id="tab-overview">
+    <div class="card">
+      <div class="actions">
+        <button class="primary" id="run-now">Jetzt neu bewerten</button>
+        <label for="day-picker" class="status-line">Tag</label>
+        <input type="date" id="day-picker" style="max-width:180px">
+        <span class="status-line" id="run-status"></span>
+      </div>
+    </div>
+
+    <div id="warnings"></div>
+
+    <div class="card">
+      <h2>Ergebnis für <span id="result-day">–</span></h2>
+      <p class="note" id="result-sources"></p>
+      <div class="tiles" id="tiles"></div>
+    </div>
+
+    <div class="card">
+      <h2>All-in-Arbeitspreis je Viertelstunde</h2>
+      <p class="note">Börsenpreis netto × 1,19 zuzüglich 15,29 ct Netz/Abgaben und 1,19 ct Service. Das hinterlegte Band ist das empfohlene Ladefenster.</p>
+      <div class="legend" id="legend-price"></div>
+      <div class="chart-wrap" id="chart-price"></div>
+    </div>
+
+    <div class="card">
+      <h2>Speicherprüfung</h2>
+      <p class="note" id="storage-verdict"></p>
+      <div class="chart-wrap"><table id="storage-table"></table></div>
+      <ul class="reasons" id="storage-reasons"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Prognostizierter Verbrauch und Netzbezug</h2>
+      <p class="note">Gestapelt je Viertelstunde: Haushalt, Auto, Wärmepumpe. Die Linie zeigt den erwarteten Netzbezug nach PV und Speicher.</p>
+      <div class="legend" id="legend-load"></div>
+      <div class="chart-wrap" id="chart-load"></div>
+    </div>
+
+    <div class="card">
+      <h2>Speicherfüllstand im Tagesverlauf</h2>
+      <p class="note">Nutzbare Energie oberhalb der unteren SoC-Grenze, ohne Netzladung gerechnet.</p>
+      <div class="chart-wrap" id="chart-soc"></div>
+    </div>
+  </section>
+
+  <section id="tab-history" hidden>
+    <div class="card">
+      <h2>Kurzfazit</h2>
+      <ul class="reasons" id="conclusion"></ul>
+    </div>
+    <div class="card">
+      <h2>Ersparnis je Tag gegenüber Fixtarif</h2>
+      <div class="legend" id="legend-daily"></div>
+      <div class="chart-wrap" id="chart-daily"></div>
+    </div>
+    <div class="card">
+      <h2>Kumulierte Ersparnis</h2>
+      <div class="legend" id="legend-cum"></div>
+      <div class="chart-wrap" id="chart-cum"></div>
+    </div>
+    <div class="card">
+      <h2>Monate</h2>
+      <div class="chart-wrap"><table id="months-table"></table></div>
+    </div>
+    <div class="card">
+      <h2>Jahre</h2>
+      <div class="chart-wrap"><table id="years-table"></table></div>
+    </div>
+  </section>
+
+  <section id="tab-setup" hidden>
+    <form id="setup-form">
+      <fieldset>
+        <legend>Entitäten</legend>
+        <p class="note" id="discovery-note">Vorschläge stammen aus der automatischen Erkennung. Pflichtangaben sind markiert.</p>
+        <div id="entity-rows"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Speicher</legend>
+        <div class="row"><label for="battery.nominal_kwh">Nennkapazität (kWh)</label><input id="battery.nominal_kwh" type="number" step="0.1"></div>
+        <div class="row"><label for="battery.soc_min_pct">Untere SoC-Grenze (%)</label><input id="battery.soc_min_pct" type="number" step="1"></div>
+        <div class="row"><label for="battery.soc_max_pct">Obere SoC-Grenze (%)</label><input id="battery.soc_max_pct" type="number" step="1"></div>
+        <div class="row"><label for="battery.usable_kwh_override">Nutzbare Kapazität überschreiben (kWh)</label><input id="battery.usable_kwh_override" type="number" step="0.1"></div>
+        <div class="row"><span class="hint">0 lässt die nutzbare Kapazität aus Nennkapazität und SoC-Grenzen berechnen.</span></div>
+        <div class="row"><label for="battery.charge_kw">Maximale Ladeleistung (kW)</label><input id="battery.charge_kw" type="number" step="0.1"></div>
+        <div class="row"><label for="battery.discharge_kw">Maximale Entladeleistung (kW)</label><input id="battery.discharge_kw" type="number" step="0.1"></div>
+        <div class="row"><label for="battery.roundtrip_efficiency">Wirkungsgrad (Zyklus, 0–1)</label><input id="battery.roundtrip_efficiency" type="number" step="0.01"></div>
+        <div class="row"><label for="battery.grid_charge_controllable">Netzladung steuerbar</label><input id="battery.grid_charge_controllable" type="checkbox"></div>
+        <div class="row"><span class="hint">Nur zur Dokumentation – das Add-on steuert nichts, es rechnet nur.</span></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Auto und Wallbox</legend>
+        <div class="row"><label for="ev.enabled">Auto berücksichtigen</label><input id="ev.enabled" type="checkbox"></div>
+        <div class="row"><label for="ev.kwh_per_night">Ladebedarf je Nacht (kWh)</label><input id="ev.kwh_per_night" type="number" step="0.1"></div>
+        <div class="row"><span class="hint">0 leitet den Bedarf aus der Wallbox-Historie ab.</span></div>
+        <div class="row"><label for="ev.power_kw">Ladeleistung (kW)</label><input id="ev.power_kw" type="number" step="0.1"></div>
+        <div class="row"><label for="ev.window_start_hour">Ladefenster von (Stunde)</label><input id="ev.window_start_hour" type="number" step="1" min="0" max="23"></div>
+        <div class="row"><label for="ev.window_end_hour">Ladefenster bis (Stunde)</label><input id="ev.window_end_hour" type="number" step="1" min="0" max="23"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Tarife</legend>
+        <div class="row"><label for="tariff.fixed_price_ct">Fixtarif (ct/kWh brutto)</label><input id="tariff.fixed_price_ct" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.fixed_base_price_eur_month">Fixtarif Grundpreis (€/Monat)</label><input id="tariff.fixed_base_price_eur_month" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.grid_and_levies_ct">smart: Netz, Abgaben, Umlagen, Steuern (ct)</label><input id="tariff.grid_and_levies_ct" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.service_ct">smart: Servicepauschale (ct)</label><input id="tariff.service_ct" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.vat_factor">smart: Faktor auf den Börsenpreis</label><input id="tariff.vat_factor" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.base_price_eur_month">smart: Grundpreis (€/Monat)</label><input id="tariff.base_price_eur_month" type="number" step="0.01"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Prognose</legend>
+        <div class="row"><label for="forecast.history_days">Historie (Tage)</label><input id="forecast.history_days" type="number" step="1"></div>
+        <div class="row"><label for="forecast.min_history_days">Mindesthistorie (Tage)</label><input id="forecast.min_history_days" type="number" step="1"></div>
+        <div class="row"><label for="forecast.reference_weight">Gewicht der Monatsreferenz (0–1)</label><input id="forecast.reference_weight" type="number" step="0.05"></div>
+        <div class="row"><label for="forecast.baseload_kw">Nicht verschiebbare Grundlast (kW)</label><input id="forecast.baseload_kw" type="number" step="0.01"></div>
+        <div class="row"><span class="hint">0 leitet die Grundlast aus der Historie ab.</span></div>
+        <div class="row"><label for="forecast.pv_latitude">Breitengrad (für die PV-Tagesform)</label><input id="forecast.pv_latitude" type="number" step="0.1"></div>
+        <div class="row"><label for="forecast.pv_peak_hour">Stunde des PV-Maximums</label><input id="forecast.pv_peak_hour" type="number" step="0.5"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Szenarien</legend>
+        <div class="row"><label for="scenarios.battery_60kwh">Speicher 60 kWh rechnen</label><input id="scenarios.battery_60kwh" type="checkbox"></div>
+        <div class="row"><label for="heatpump.enabled">Wärmepumpe berücksichtigen</label><input id="heatpump.enabled" type="checkbox"></div>
+        <div class="row"><label for="heatpump.annual_kwh">Wärmepumpe: Jahresmenge (kWh)</label><input id="heatpump.annual_kwh" type="number" step="10"></div>
+        <div class="row"><label for="heatpump.shiftable_share">Wärmepumpe: verschiebbarer Anteil (0–1)</label><input id="heatpump.shiftable_share" type="number" step="0.05"></div>
+        <div class="row"><label for="publish_sensors">Sensoren in Home Assistant schreiben</label><input id="publish_sensors" type="checkbox"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Referenz-Netzbezug je Monat (kWh)</legend>
+        <p class="note">Dient der Plausibilisierung der aus der Historie abgeleiteten Tagesmenge.</p>
+        <div id="monthly-rows"></div>
+      </fieldset>
+
+      <div class="actions">
+        <button class="primary" type="submit">Speichern</button>
+        <button class="ghost" type="button" id="reload-entities">Entitäten neu erkennen</button>
+        <span class="status-line" id="setup-status"></span>
+      </div>
+    </form>
+  </section>
+
+  <section id="tab-log" hidden>
+    <div class="card">
+      <h2>Läufe</h2>
+      <div class="chart-wrap"><table id="runs-table"></table></div>
+    </div>
+  </section>
+</main>
+
+<div class="tooltip" id="tooltip"></div>
+<script src="charts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
