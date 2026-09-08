@@ -47,6 +47,13 @@ class Entities:
     battery_discharge_energy: str = ""  # Speicher-Entladung, kWh (optional)
     wallbox_energy: str = ""         # Wallbox-Ladeenergie, kWh (optional)
     heatpump_energy: str = ""        # Wärmepumpe, kWh (optional)
+    # Grenzen, die das System selbst meldet. Victron gibt sie in Ampere aus;
+    # zusammen mit der Batteriespannung wird daraus eine Leistung.
+    battery_charge_limit: str = ""   # DVCC Ladestromgrenze (CCL)
+    battery_discharge_limit: str = ""  # DVCC Entladestromgrenze (DCL)
+    battery_voltage: str = ""        # Batteriespannung, V
+    battery_soc_min: str = ""        # ESS-Mindest-SoC, %
+    ac_input_limit: str = ""         # Eingangsstrombegrenzung, A
 
 
 @dataclass
@@ -56,9 +63,24 @@ class Battery:
     nominal_kwh: float = 30.0
     soc_min_pct: float = 10.0
     soc_max_pct: float = 100.0
-    usable_kwh_override: float = 0.0   # 0 = aus Nennkapazitaet und SoC-Grenzen ableiten
+    usable_kwh_override: float = 0.0   # 0 = aus Nennkapazität und SoC-Grenzen ableiten
+
+    # Ladeleistung auf der Gleichstromseite: was der Speicher insgesamt annimmt,
+    # also der Weg über die MPPT-Regler aus der PV.
     charge_kw: float = 10.0
+    # Ladeleistung aus dem Netz: der Weg über das Ladegerät des Wechselrichters.
+    # Bei einer MultiPlus-II 48/5000/70 sind das rund 70 A mal 52 V, also 3,6 kW -
+    # deutlich weniger, als die Anlage aus der PV aufnimmt.
+    grid_charge_kw: float = 3.6
     discharge_kw: float = 10.0
+
+    # Ersatzwert, wenn keine Spannungs-Entität gewählt ist (16s LFP).
+    nominal_voltage_v: float = 51.2
+    # Eingangsstrombegrenzung des Wechselrichters. Begrenzt zusätzlich, was aus
+    # dem Netz durch das Gerät fließen kann. 0 = keine Begrenzung.
+    ac_input_limit_a: float = 0.0
+    mains_voltage_v: float = 230.0
+    phases: int = 1
     # Netz -> Speicher -> Haus. Für ein Victron-ESS mit LFP: Ladegerät ~0,93 mal
     # Zellen ~0,97 mal Wechselrichter ~0,94. Der Standby des MultiPlus gehört
     # nicht hierher, er steckt bereits im gemessenen Verbrauchsprofil.

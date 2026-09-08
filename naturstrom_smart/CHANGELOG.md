@@ -17,6 +17,11 @@ Erste Fassung.
 - Ingress-Oberfläche mit Einrichtungsassistent, Diagrammen und Verlauf.
 - Ergebnisse als Entitäten in Home Assistant.
 - Optionale Szenarien: Speicher 60 kWh, Wärmepumpe.
+- Netzladeleistung getrennt von der PV-Ladeleistung: Netzladung läuft über das
+  Ladegerät des Wechselrichters und ist meist deutlich kleiner als das, was der
+  Speicher aus den MPPT-Reglern annimmt.
+- Lade- und Entladegrenzen sowie Mindest-SoC und Eingangsstrombegrenzung wahlweise
+  live aus Home Assistant, mit Umrechnung von Ampere in Leistung.
 - Wirkungsgrad ab Werk auf 0,85 (Victron-ESS mit LFP) und aus den Speicherzählern
   schätzbar, mit getrenntem Ausweis von gemessenem Speicher- und angenommenem
   Wandlerwirkungsgrad.

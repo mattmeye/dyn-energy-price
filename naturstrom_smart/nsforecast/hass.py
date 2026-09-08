@@ -60,6 +60,7 @@ class StatPoint:
     start_utc: datetime
     value: float | None       # Zählerstand (sum) am Intervallbeginn
     mean: float | None = None
+    minimum: float | None = None
 
 
 class HomeAssistant:
@@ -202,7 +203,7 @@ class HomeAssistant:
             "end_time": iso_utc(end),
             "statistic_ids": list(wanted),
             "period": period,
-            "types": ["sum", "state", "mean"],
+            "types": ["sum", "state", "mean", "min"],
         }
         try:
             raw = self._ws_call(websocket, message)
@@ -225,6 +226,7 @@ class HomeAssistant:
                         start_utc=moment,
                         value=None if value is None else float(value),
                         mean=None if row.get("mean") is None else float(row["mean"]),
+                        minimum=None if row.get("min") is None else float(row["min"]),
                     )
                 )
             points.sort(key=lambda p: p.start_utc)

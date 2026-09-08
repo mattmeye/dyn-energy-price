@@ -46,6 +46,7 @@ def test_ohne_speichergrenzen_ist_nie_schlechter(settings, slots):
 
 def test_kleiner_speicher_begrenzt_die_verschiebung(settings, slots):
     spot = night_cheap_prices(slots)
+    settings.battery.grid_charge_kw = 10.0
     gross = run(settings, slots, spot, start_energy=0.0)
     settings.battery.nominal_kwh = 5.0
     klein = run(settings, slots, spot, start_energy=0.0)
@@ -54,11 +55,31 @@ def test_kleiner_speicher_begrenzt_die_verschiebung(settings, slots):
     assert "kapazitaet" in klein.storage.binding
 
 
-def test_schwache_ladeleistung_wird_als_grund_genannt(settings, slots):
-    settings.battery.charge_kw = 1.0
+def test_schwache_netzladeleistung_wird_als_grund_genannt(settings, slots):
+    settings.battery.grid_charge_kw = 1.0
     result = run(settings, slots, night_cheap_prices(slots), start_energy=0.0)
     assert "ladeleistung" in result.storage.binding
-    assert any("Ladeleistung" in reason for reason in result.storage.reasons)
+    assert any("Netzladeleistung" in reason for reason in result.storage.reasons)
+
+
+def test_netzladung_nutzt_nicht_die_pv_ladeleistung(settings, slots):
+    """Über die MPPT-Regler fließt mehr in den Speicher, als das Ladegerät liefert."""
+    settings.battery.charge_kw = 20.0
+    settings.battery.grid_charge_kw = 3.6
+    schwach = run(settings, slots, night_cheap_prices(slots), start_energy=0.0)
+    settings.battery.grid_charge_kw = 10.0
+    stark = run(settings, slots, night_cheap_prices(slots), start_energy=0.0)
+    assert stark.storage.shifted_kwh > schwach.storage.shifted_kwh
+    assert schwach.storage.charge_power_available_kw == 3.6
+
+
+def test_netzladung_teilt_sich_die_ladeannahme_mit_der_pv(settings, slots):
+    """Was die PV gerade einspeichert, steht dem Netzladen nicht zur Verfügung."""
+    settings.battery.charge_kw = 4.0
+    settings.battery.grid_charge_kw = 4.0
+    ohne_pv = run(settings, slots, night_cheap_prices(slots), start_energy=0.0, pv_kwh=0.0)
+    # Ein Fenster mitten am Tag, in dem die PV bereits lädt, gibt weniger her.
+    assert ohne_pv.storage.shifted_kwh > 0
 
 
 def test_wallbox_ueber_entladeleistung_bleibt_am_netz(settings, slots):
@@ -77,6 +98,7 @@ def test_voller_speicher_laesst_keine_kapazitaet_frei(settings, slots):
 def test_szenario_60_kwh_verschiebt_mehr(settings, slots):
     spot = night_cheap_prices(slots)
     settings.ev.kwh_per_night = 30.0
+    settings.battery.grid_charge_kw = 10.0   # sonst begrenzt das Ladegerät, nicht die Kapazität
     standard = run(settings, slots, spot, start_energy=0.0)
     settings.scenarios.battery_60kwh = True
     gross = run(settings, slots, spot, start_energy=0.0)

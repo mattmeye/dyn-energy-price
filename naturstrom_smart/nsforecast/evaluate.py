@@ -194,7 +194,11 @@ def optimise(
     if slot_count == 0:
         return _empty_plan(0)
 
-    charge_limit = battery.charge_kw * duration_h
+    # Netzladung läuft über das Ladegerät des Wechselrichters, PV dagegen über die
+    # MPPT-Regler direkt auf die Gleichstromseite. Beide Wege teilen sich die
+    # Ladeannahme des Speichers, haben aber unterschiedliche Obergrenzen.
+    dc_limit = battery.charge_kw * duration_h
+    grid_limit = battery.grid_charge_kw * duration_h
     max_slots = slot_count if unlimited else max(1, int(round(max_window_hours / duration_h)))
     candidate_cache: dict[int, list[tuple[float, int, float]]] = {}
     best = _empty_plan(slot_count)
@@ -207,7 +211,8 @@ def optimise(
             if unlimited:
                 headroom = float("inf")
             else:
-                headroom = max(0.0, charge_limit - baseline.pv_to_battery_kwh[index])
+                frei = max(0.0, dc_limit - baseline.pv_to_battery_kwh[index])
+                headroom = min(grid_limit, frei)
             if headroom > 1e-9:
                 bisect.insort(charge_slots, (prices_ct[index], index, headroom))
             if not charge_slots:
@@ -283,7 +288,7 @@ def build_storage_check(
             soc_at_window_start_kwh=0.0,
             pv_reserved_kwh=0.0,
             charge_power_needed_kw=0.0,
-            charge_power_available_kw=battery.charge_kw,
+            charge_power_available_kw=battery.grid_charge_kw,
             capacity_limit_kwh=0.0,
             charge_power_limit_kwh=0.0,
             discharge_blocked_kwh=0.0,
@@ -323,7 +328,7 @@ def build_storage_check(
     if charge_power_limit < needed - tolerance:
         binding.append("ladeleistung")
         reasons.append(
-            f"Ladeleistung: {battery.charge_kw:.1f} kW über {window_hours:.2f} h "
+            f"Netzladeleistung: {battery.grid_charge_kw:.1f} kW über {window_hours:.2f} h "
             f"-> höchstens {charge_power_limit:.1f} kWh verschiebbar"
         )
     if discharge_blocked > tolerance:
@@ -343,7 +348,7 @@ def build_storage_check(
         soc_at_window_start_kwh=plan.soc_at_start_kwh,
         pv_reserved_kwh=plan.pv_reserved_kwh,
         charge_power_needed_kw=plan.total_charge_kwh / window_hours if window_hours > 0 else 0.0,
-        charge_power_available_kw=battery.charge_kw,
+        charge_power_available_kw=battery.grid_charge_kw,
         capacity_limit_kwh=capacity_limit,
         charge_power_limit_kwh=charge_power_limit,
         discharge_blocked_kwh=discharge_blocked,

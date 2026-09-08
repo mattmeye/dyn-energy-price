@@ -28,6 +28,9 @@ Optional, aber hilfreich:
 | Netzeinspeisung, PV-Erzeugung | Einordnung des PV-Überschusses, Ist-Abgleich |
 | Wallbox (Ladeenergie) | trennt das Auto vom Haushaltsprofil und leitet den Ladebedarf ab |
 | Speicher-Ladung und -Entladung | Messung des Wirkungsgrads aus den eigenen Zählern |
+| Ladestromgrenze (CCL), Entladestromgrenze (DCL) | Grenzen live statt fest, siehe unten |
+| Batteriespannung | rechnet Stromgrenzen in Ampere in Leistung um |
+| Mindest-Ladezustand, Eingangsstrombegrenzung | ESS-Einstellungen live übernehmen |
 | PV-Prognose heute | Fortschreibung des Ladezustands bis Mitternacht |
 | Wärmepumpe | nur für das WP-Szenario |
 
@@ -38,6 +41,53 @@ Ist Home Assistant nicht erreichbar, lassen sich die Entity-IDs von Hand eintrag
 Vorbelegt sind 30 kWh Speicher und 11 kW Wallbox. Anzupassen sind mindestens
 SoC-Grenzen, Lade- und Entladeleistung sowie der Wirkungsgrad. Die nutzbare Kapazität
 ergibt sich aus Nennkapazität und SoC-Grenzen, kann aber überschrieben werden.
+
+#### Lade- und Entladeleistung
+
+Für die Bewertung sind es **drei verschiedene Grenzen**, nicht eine:
+
+| Grenze | Weg | typisch |
+|---|---|---|
+| Ladeleistung DC | PV über die MPPT-Regler direkt auf die Gleichstromseite | so groß wie die Regler |
+| Ladeleistung aus dem Netz | über das Ladegerät des Wechselrichters | MultiPlus-II 48/5000/70: 70 A × 52 V ≈ 3,6 kW |
+| Entladeleistung | über den Wechselrichter ins Haus | Dauerleistung des Geräts |
+
+Für die Verschiebung zählt die **mittlere** Zeile. Sie ist meist die kleinste und
+bestimmt, wie lang das Ladefenster ausfallen muss:
+
+| Netzladeleistung | Fenster | verschoben | Ersparnis |
+|---|---|---|---|
+| 10,0 kW | 3,00 h | 24,7 kWh | 1,78 € |
+| 5,0 kW | 4,00 h | 17,0 kWh | 1,49 € |
+| 3,6 kW | 4,00 h | 12,2 kWh | 1,32 € |
+| 2,3 kW | 4,00 h | 7,8 kWh | 1,15 € |
+
+(Wintertag, 30 kWh Bezug, günstiges Fenster 01–05 Uhr)
+
+Das wirkt bis in die Szenarien hinein: Mit einem 3,6-kW-Ladegerät bringt der
+Ausbau auf 60 kWh Speicher **nichts** – in vier günstigen Stunden lassen sich
+ohnehin nur gut 14 kWh nachladen. Erst ein größeres Ladegerät macht mehr
+Kapazität nutzbar.
+
+Zusätzlich deckelt die **Eingangsstrombegrenzung** des Wechselrichters, was
+überhaupt aus dem Netz durch das Gerät fließt: 16 A einphasig sind 3,7 kW,
+32 A sind 7,4 kW, dreiphasig entsprechend mehr.
+
+#### Grenzen live aus Home Assistant
+
+Victron gibt die Grenzen als **Strom** aus: DVCC meldet eine Ladestromgrenze (CCL)
+und eine Entladestromgrenze (DCL) in Ampere, und das BMS senkt beide bei kalten
+Zellen oder hohem Ladezustand ab. Wird eine Entität ausgewählt, übernimmt das
+Add-on deren Wert und rechnet Ampere mit der Batteriespannung in Leistung um –
+aus der Spannungs-Entität, sonst mit dem hinterlegten Nennwert.
+
+Der Lauf findet nachmittags statt, gerechnet wird die Nacht. Liegt der kleinste
+Wert der letzten sieben Tage deutlich unter dem aktuellen, vermerkt das Add-on
+das im Ergebnis: dann greift die Absenkung durch das BMS regelmäßig, und der
+Momentanwert ist zu optimistisch. Gerechnet wird trotzdem mit dem aktuellen Wert.
+
+Dasselbe gilt für den **Mindest-Ladezustand**: Ist die ESS-Einstellung als Entität
+hinterlegt, wird sie live gelesen statt fest eingetragen.
 
 #### Wirkungsgrad
 
@@ -126,7 +176,7 @@ Speicherverluste. Das Ergebnis ist eines von vier:
 | keine Verschiebung nötig | der Preisunterschied deckt die Speicherverluste nicht |
 
 Als Gründe kommen infrage: **Kapazität** (freie Kapazität zu Fensterbeginn nach Abzug des
-Ladezustands und der für PV freigehaltenen Menge), **Ladeleistung** (kW × Fensterlänge),
+Ladezustands und der für PV freigehaltenen Menge), **Netzladeleistung** (kW des Ladegeräts × Fensterlänge),
 **Entladeleistung** (Bezug oberhalb der maximalen Entladeleistung, etwa 11 kW Wallbox
 gegen 10 kW Speicher) und **PV-Vorrang**.
 

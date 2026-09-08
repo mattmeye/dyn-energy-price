@@ -122,8 +122,8 @@
         "Freie Kapazität zu Fensterbeginn", fmt(storage.capacity_available_kwh, 1) + " kWh"],
       ["Belegt durch Ladezustand", fmt(storage.soc_at_window_start_kwh, 1) + " kWh",
         "Für PV freigehalten", fmt(storage.pv_reserved_kwh, 1) + " kWh"],
-      ["Benötigte Ladeleistung", fmt(storage.charge_power_needed_kw, 1) + " kW",
-        "Verfügbare Ladeleistung", fmt(storage.charge_power_available_kw, 1) + " kW"],
+      ["Benötigte Netzladeleistung", fmt(storage.charge_power_needed_kw, 1) + " kW",
+        "Verfügbare Netzladeleistung", fmt(storage.charge_power_available_kw, 1) + " kW"],
       ["Bezug über Entladeleistung", fmt(storage.discharge_blocked_kwh, 1) + " kWh",
         "Im Fenster ungenutzte Kapazität", fmt(storage.unused_capacity_kwh, 1) + " kWh"]
     ];
@@ -309,7 +309,10 @@
       pv_forecast_tomorrow: "PV-Prognose Folgetag *", pv_forecast_today: "PV-Prognose heute",
       battery_soc: "Speicher-Ladezustand *", battery_charge_energy: "Speicher-Ladung",
       battery_discharge_energy: "Speicher-Entladung", wallbox_energy: "Wallbox",
-      heatpump_energy: "Wärmepumpe"
+      battery_charge_limit: "Ladestromgrenze (CCL)",
+      battery_discharge_limit: "Entladestromgrenze (DCL)",
+      battery_voltage: "Batteriespannung", battery_soc_min: "Mindest-Ladezustand",
+      ac_input_limit: "Eingangsstrombegrenzung", heatpump_energy: "Wärmepumpe"
     };
     $("entity-rows").innerHTML = Object.keys(labels).map(function (key) {
       return '<div class="row"><label for="entities.' + key + '">' + labels[key] +

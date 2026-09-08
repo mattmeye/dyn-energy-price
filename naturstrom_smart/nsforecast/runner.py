@@ -12,6 +12,8 @@ from .battery import simulate_baseline
 from .evaluate import DayEvaluation, evaluate_day
 from .forecast import HistoryBundle, build_day_forecast
 from .hass import HomeAssistant, StatPoint, counter_to_hourly
+from .limits import apply as apply_limits
+from .limits import resolve as resolve_limits
 from .prices import PriceProvider, PricesUnavailable
 from .publish import publish
 from .reconcile import backfill
@@ -140,7 +142,13 @@ class Runner:
 
     # ---------------------------------------------------------------- Lauf
 
-    def carry_forward_soc(self, settings: Settings, bundle: HistoryBundle, target_day: date) -> float | None:
+    def carry_forward_soc(
+        self,
+        settings: Settings,
+        bundle: HistoryBundle,
+        target_day: date,
+        battery: Any = None,
+    ) -> float | None:
         """Ladezustand vom Jetzt bis Mitternacht fortschreiben.
 
         Der Lauf fällt nachmittags an, bewertet aber den Folgetag. Zwischen
@@ -149,7 +157,7 @@ class Runner:
         """
         if bundle.battery_soc_pct is None:
             return None
-        battery = settings.scenario_battery()
+        battery = battery or settings.scenario_battery()
         now = datetime.now(tz=UTC)
         today = now.astimezone(self.tz).date()
         if target_day <= today:
@@ -193,7 +201,20 @@ class Runner:
 
         bundle = bundle if bundle is not None else self.collect_history(settings, day)
         forecast = build_day_forecast(day, slots, self.tz, settings, bundle)
-        start_energy = self.carry_forward_soc(settings, bundle, day)
+
+        # Lade- und Entladegrenzen können live aus Home Assistant kommen; das BMS
+        # senkt sie bei kalten Zellen ab, ein fester Wert wäre dann zu optimistisch.
+        battery = settings.scenario_battery()
+        if self.hass.configured:
+            limits = resolve_limits(self.hass, battery, settings.entities)
+            battery = apply_limits(battery, limits)
+            forecast.notes.extend(limits.notes)
+            forecast.notes.append(
+                f"Grenzen: laden {limits.charge_kw:.1f} kW (DC), aus dem Netz "
+                f"{limits.grid_charge_kw:.1f} kW, entladen {limits.discharge_kw:.1f} kW"
+            )
+
+        start_energy = self.carry_forward_soc(settings, bundle, day, battery)
         if start_energy is not None and day > datetime.now(tz=self.tz).date():
             forecast.notes.append(
                 f"Ladezustand auf {start_energy:.1f} kWh zu Tagesbeginn fortgeschrieben"
@@ -204,7 +225,7 @@ class Runner:
             spot,
             settings,
             self.tz,
-            settings.scenario_battery(),
+            battery,
             bundle.battery_soc_pct,
             scenario=scenario,
             start_energy_kwh=start_energy,
