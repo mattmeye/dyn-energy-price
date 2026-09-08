@@ -15,6 +15,11 @@ from urllib.parse import parse_qs, urlparse
 from .aggregate import conclusion, cumulative_savings, summarise
 from .config import Settings
 from .discovery import ROLES, discover
+from .efficiency import (
+    DEFAULT_CHARGER_EFFICIENCY,
+    DEFAULT_INVERTER_EFFICIENCY,
+    estimate as estimate_efficiency,
+)
 from .hass import HomeAssistantError
 from .runner import Runner
 from .scheduler import Scheduler
@@ -129,6 +134,24 @@ class Api:
             "conclusion": conclusion(summarise(forecasts, actuals, "month")),
         }
 
+    def efficiency(self, params: dict[str, list[str]]) -> dict[str, Any]:
+        def number(name: str, fallback: float) -> float:
+            try:
+                return float((params.get(name) or [fallback])[0])
+            except (TypeError, ValueError):
+                return fallback
+
+        settings = self.runner.settings_store.load()
+        estimate = estimate_efficiency(
+            self.runner.hass,
+            settings,
+            days=int(number("days", 30)),
+            measurement_side=(params.get("side") or ["dc"])[0],
+            charger_efficiency=number("charger", DEFAULT_CHARGER_EFFICIENCY),
+            inverter_efficiency=number("inverter", DEFAULT_INVERTER_EFFICIENCY),
+        )
+        return estimate.as_dict()
+
     def runs(self) -> dict[str, Any]:
         return {"runs": self.runner.store.recent_runs(30)}
 
@@ -190,6 +213,7 @@ class Handler(BaseHTTPRequestHandler):
             "api/settings": self.api.get_settings,
             "api/forecast": lambda: self.api.forecast(params),
             "api/history": lambda: self.api.history(params),
+            "api/efficiency": lambda: self.api.efficiency(params),
             "api/runs": self.api.runs,
         }
         if path in routes:

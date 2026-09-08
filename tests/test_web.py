@@ -164,6 +164,13 @@ def test_laufprotokoll(server):
     assert runs[0]["status"] == "keine_preise"
 
 
+def test_wirkungsgrad_endpunkt(server):
+    data = get(server, "api/efficiency?days=30")
+    assert 0.5 <= data["ac_roundtrip"] <= 0.99
+    assert data["measured"] is False          # der Testaufbau hat keine Speicherzähler
+    assert data["notes"]
+
+
 def test_unbekannte_route(server):
     with pytest.raises(HTTPError) as fehler:
         urllib.request.urlopen(f"{server}/api/gibtsnicht", timeout=5)

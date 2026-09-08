@@ -17,3 +17,6 @@ Erste Fassung.
 - Ingress-Oberfläche mit Einrichtungsassistent, Diagrammen und Verlauf.
 - Ergebnisse als Entitäten in Home Assistant.
 - Optionale Szenarien: Speicher 60 kWh, Wärmepumpe.
+- Wirkungsgrad ab Werk auf 0,85 (Victron-ESS mit LFP) und aus den Speicherzählern
+  schätzbar, mit getrenntem Ausweis von gemessenem Speicher- und angenommenem
+  Wandlerwirkungsgrad.

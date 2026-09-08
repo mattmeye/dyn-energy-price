@@ -59,7 +59,10 @@ class Battery:
     usable_kwh_override: float = 0.0   # 0 = aus Nennkapazitaet und SoC-Grenzen ableiten
     charge_kw: float = 10.0
     discharge_kw: float = 10.0
-    roundtrip_efficiency: float = 0.90
+    # Netz -> Speicher -> Haus. Für ein Victron-ESS mit LFP: Ladegerät ~0,93 mal
+    # Zellen ~0,97 mal Wechselrichter ~0,94. Der Standby des MultiPlus gehört
+    # nicht hierher, er steckt bereits im gemessenen Verbrauchsprofil.
+    roundtrip_efficiency: float = 0.85
     grid_charge_controllable: bool = False
 
     @property

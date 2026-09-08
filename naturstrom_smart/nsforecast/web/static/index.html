@@ -112,6 +112,14 @@
         <div class="row"><label for="battery.charge_kw">Maximale Ladeleistung (kW)</label><input id="battery.charge_kw" type="number" step="0.1"></div>
         <div class="row"><label for="battery.discharge_kw">Maximale Entladeleistung (kW)</label><input id="battery.discharge_kw" type="number" step="0.1"></div>
         <div class="row"><label for="battery.roundtrip_efficiency">Wirkungsgrad (Zyklus, 0–1)</label><input id="battery.roundtrip_efficiency" type="number" step="0.01"></div>
+        <div class="row"><span class="hint">Weg Netz → Speicher → Haus. Victron-ESS mit LFP: etwa 0,85 (Ladegerät 0,93 × Zellen 0,97 × Wechselrichter 0,94). Der Standby der MultiPlus gehört nicht hier hinein.</span></div>
+        <div class="row">
+          <span></span>
+          <span class="actions">
+            <button class="ghost" type="button" id="estimate-efficiency">Aus Speicherdaten schätzen</button>
+            <span class="status-line" id="efficiency-status"></span>
+          </span>
+        </div>
         <div class="row"><label for="battery.grid_charge_controllable">Netzladung steuerbar</label><input id="battery.grid_charge_controllable" type="checkbox"></div>
         <div class="row"><span class="hint">Nur zur Dokumentation – das Add-on steuert nichts, es rechnet nur.</span></div>
       </fieldset>

@@ -27,6 +27,7 @@ Optional, aber hilfreich:
 | Hausverbrauch | genaueres Lastprofil als der Zähler allein |
 | Netzeinspeisung, PV-Erzeugung | Einordnung des PV-Überschusses, Ist-Abgleich |
 | Wallbox (Ladeenergie) | trennt das Auto vom Haushaltsprofil und leitet den Ladebedarf ab |
+| Speicher-Ladung und -Entladung | Messung des Wirkungsgrads aus den eigenen Zählern |
 | PV-Prognose heute | Fortschreibung des Ladezustands bis Mitternacht |
 | Wärmepumpe | nur für das WP-Szenario |
 
@@ -37,6 +38,35 @@ Ist Home Assistant nicht erreichbar, lassen sich die Entity-IDs von Hand eintrag
 Vorbelegt sind 30 kWh Speicher und 11 kW Wallbox. Anzupassen sind mindestens
 SoC-Grenzen, Lade- und Entladeleistung sowie der Wirkungsgrad. Die nutzbare Kapazität
 ergibt sich aus Nennkapazität und SoC-Grenzen, kann aber überschrieben werden.
+
+#### Wirkungsgrad
+
+Gemeint ist der Weg **Netz → Speicher → Haus**, also Ladegerät, Zellen und
+Wechselrichter zusammen. Für ein Victron-ESS mit LFP-Speicher:
+
+| Stufe | typisch |
+|---|---|
+| Ladegerät AC→DC (MultiPlus-II) | 0,92–0,94 |
+| LFP-Zellen DC→DC | 0,96–0,98 |
+| Wechselrichter DC→AC | 0,93–0,95 |
+| **zusammen** | **0,82–0,88**, Vorbelegung 0,85 |
+
+Der Standby der MultiPlus (etwa 15–25 W) und des Cerbo gehört **nicht** hierher. Er
+läuft unabhängig vom Laden und steckt bereits im gemessenen Verbrauchsprofil; im
+Wirkungsgrad wäre er doppelt gezählt.
+
+Die Schaltfläche **Aus Speicherdaten schätzen** wertet die Zähler für Speicher-Ladung
+und -Entladung der letzten 30 Tage aus. Deren Verhältnis ist der Wirkungsgrad des
+Speichers allein – bei Victron messen diese Zähler am Shunt, also auf der
+Gleichstromseite. Ladegerät und Wechselrichter werden mit 0,93 und 0,94 ergänzt.
+Liegt das gemessene Verhältnis außerhalb von 0,80 bis 1,00, passen die beiden Zähler
+nicht zusammen; dann wird ein typischer LFP-Wert angesetzt und das im Ergebnis vermerkt.
+Der Vorschlag landet im Feld, gespeichert wird er erst mit **Speichern**.
+
+Der Wert wirkt doppelt: Er verringert die verschiebbare Menge, und er hebt die
+Schwelle, ab der sich eine Verschiebung überhaupt lohnt. Bei einem Ladepreis von
+19,5 ct/kWh muss der verdrängte Bezug bei 0,90 mindestens 21,6 ct kosten, bei 0,85
+schon 22,9 ct.
 
 Der Ladebedarf des Autos wird aus der Wallbox-Historie abgeleitet, sobald „Ladebedarf je
 Nacht“ auf 0 steht.

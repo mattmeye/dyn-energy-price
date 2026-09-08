@@ -448,6 +448,27 @@
 
     $("reload-entities").addEventListener("click", loadEntities);
 
+    $("estimate-efficiency").addEventListener("click", function () {
+      $("efficiency-status").textContent = "Speicherdaten werden ausgewertet …";
+      api("api/efficiency?days=30").then(function (data) {
+        setValue("battery.roundtrip_efficiency", data.ac_roundtrip.toFixed(2));
+        var herkunft = data.measured
+          ? "gemessen über " + data.days + " Tage: " + fmt(data.charged_kwh, 0) + " kWh geladen, " +
+            fmt(data.discharged_kwh, 0) + " kWh entladen → Speicher " +
+            fmt(data.dc_roundtrip * 100, 1) + " %"
+          : "keine Messung möglich, Datenblattwert";
+        var wandler = data.measurement_side === "ac" ? "" :
+          " · mit Ladegerät " + fmt(data.charger_efficiency * 100, 0) + " % und Wechselrichter " +
+          fmt(data.inverter_efficiency * 100, 0) + " %";
+        $("efficiency-status").textContent =
+          "Vorschlag " + data.ac_roundtrip.toFixed(2) + " (" + herkunft + wandler + ")" +
+          (data.notes.length ? " – " + data.notes.join("; ") : "") +
+          ". Noch nicht gespeichert.";
+      }).catch(function (error) {
+        $("efficiency-status").textContent = "Fehler: " + error.message;
+      });
+    });
+
     $("setup-form").addEventListener("submit", function (event) {
       event.preventDefault();
       $("setup-status").textContent = "Speichern …";
