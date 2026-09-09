@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from conftest import DAY, TZ, flat_history, night_cheap_prices, pv_state
 
@@ -14,6 +15,7 @@ from dynprice.mqttpublish import (
     ONLINE,
     STATUS_TOPIC,
     BrokerInfo,
+    MqttSession,
     discovery_payload,
     messages,
     topics,
@@ -29,8 +31,9 @@ def make_evaluation(settings, prices=None):
     slots = slot_starts_utc(DAY, TZ)
     bundle = HistoryBundle(household_hourly=flat_history(), pv_forecast_state=pv_state(3.0))
     forecast = build_day_forecast(DAY, slots, TZ, settings, bundle)
-    return evaluate_day(forecast, prices or night_cheap_prices(slots), settings, TZ,
-                        settings.scenario_battery(), None, start_energy_kwh=0.0)
+    evaluation = evaluate_day(forecast, prices or night_cheap_prices(slots), settings, TZ,
+                              settings.scenario_battery(), None, start_energy_kwh=0.0)
+    return evaluation.as_dict()
 
 
 def test_discovery_topics_folgen_der_konvention(settings):
@@ -139,11 +142,11 @@ def test_mit_broker_wird_mqtt_bevorzugt(tmp_path, settings, monkeypatch):
     runner._broker = BrokerInfo(host="core-mosquitto", port=1883)
     gesendet = {}
 
-    def fake_publish(self, evaluation, timeout=15.0):
-        gesendet["anzahl"] = len(messages(evaluation))
+    def fake_publish(self, payload):
+        gesendet["anzahl"] = len(messages(payload))
         return gesendet["anzahl"]
 
-    monkeypatch.setattr("dynprice.mqttpublish.MqttPublisher.publish", fake_publish)
+    monkeypatch.setattr("dynprice.mqttpublish.MqttSession.publish", fake_publish)
     anzahl, weg = runner.publish_result(settings, make_evaluation(settings))
     assert weg == "MQTT"
     assert anzahl == gesendet["anzahl"]
@@ -172,10 +175,116 @@ def test_mqtt_fehler_faellt_auf_die_zustands_api_zurueck(tmp_path, settings, mon
     runner = make_runner(tmp_path, settings)
     runner._broker = BrokerInfo(host="core-mosquitto", port=1883)
 
-    def kaputt(self, evaluation, timeout=15.0):
+    def kaputt(self, payload):
         raise OSError("Broker nicht erreichbar")
 
-    monkeypatch.setattr("dynprice.mqttpublish.MqttPublisher.publish", kaputt)
+    monkeypatch.setattr("dynprice.mqttpublish.MqttSession.publish", kaputt)
     anzahl, weg = runner.publish_result(settings, make_evaluation(settings))
     assert weg == "Zustands-API"
     assert anzahl > 0
+
+
+def test_letzter_wille_und_status_beim_verbinden(settings):
+    """Der Letzte Wille greift nur bei bestehender Verbindung."""
+    aufrufe = []
+
+    class FakeClient:
+        def will_set(self, topic, payload, qos=0, retain=False):
+            aufrufe.append(("will", topic, payload, retain))
+
+        def publish(self, topic, payload, qos=0, retain=False):
+            aufrufe.append(("publish", topic, payload, retain))
+            return self
+
+        def wait_for_publish(self, timeout=None):
+            return True
+
+        def subscribe(self, topic, qos=0):
+            aufrufe.append(("subscribe", topic))
+
+        def connect(self, host, port, keepalive=60):
+            aufrufe.append(("connect", host, port))
+
+        def loop_start(self):
+            pass
+
+        def loop_stop(self):
+            pass
+
+        def disconnect(self):
+            aufrufe.append(("disconnect",))
+
+    session = MqttSession(BrokerInfo(host="core-mosquitto", port=1883))
+    client = FakeClient()
+    session._build_client = lambda: client
+    client.will_set(STATUS_TOPIC, OFFLINE, qos=1, retain=True)
+
+    session.start()
+    session._on_connect(client, None, None, 0)
+    assert ("publish", STATUS_TOPIC, ONLINE, True) in aufrufe
+    assert ("subscribe", "homeassistant/status") in aufrufe
+    assert ("will", STATUS_TOPIC, OFFLINE, True) in aufrufe
+
+    session.stop()
+    assert ("publish", STATUS_TOPIC, OFFLINE, True) in aufrufe
+    assert ("disconnect",) in aufrufe
+
+
+def test_start_verbindet_nur_einmal(settings):
+    versuche = []
+
+    class FakeClient:
+        def connect(self, *args, **kwargs):
+            versuche.append(args)
+
+        def loop_start(self):
+            pass
+
+    session = MqttSession(BrokerInfo(host="h", port=1883))
+    session._build_client = lambda: FakeClient()
+    session.start()
+    session.start()
+    assert len(versuche) == 1
+
+
+def test_neustart_von_home_assistant_loest_erneutes_senden_aus(settings):
+    gerufen = []
+    session = MqttSession(BrokerInfo(host="h", port=1883),
+                          on_home_assistant_online=lambda: gerufen.append(True))
+
+    class Nachricht:
+        topic = "homeassistant/status"
+        payload = b"online"
+
+    session._on_message(None, None, Nachricht())
+    assert gerufen == [True]
+
+    Nachricht.payload = b"offline"
+    session._on_message(None, None, Nachricht())
+    assert gerufen == [True]   # nur beim Hochfahren
+
+
+def test_republish_sendet_das_gespeicherte_ergebnis(tmp_path, settings, monkeypatch):
+    from datetime import timedelta
+    from dynprice.timeutil import tzinfo
+
+    runner = make_runner(tmp_path, settings)
+    payload = make_evaluation(settings)
+    morgen = datetime.now(tz=tzinfo()).date() + timedelta(days=1)
+    payload["day"] = morgen.isoformat()
+
+    class FakeRow:
+        def __init__(self, p):
+            self.payload = p
+
+    monkeypatch.setattr(runner.store, "get_forecast",
+                        lambda tag, scenario="standard": FakeRow(payload) if tag == morgen else None)
+    runner._broker = None
+    assert runner.republish_latest() > 0
+    assert "sensor.dyn_price_ersparnis_folgetag" in runner.hass.states
+
+
+def test_republish_ohne_gespeichertes_ergebnis_tut_nichts(tmp_path, settings):
+    runner = make_runner(tmp_path, settings)
+    runner._broker = None
+    assert runner.republish_latest() == 0

@@ -257,6 +257,35 @@ automation:
 
 
 
+## Neustarts
+
+| Was neu startet | Was passiert |
+|---|---|
+| **Home Assistant** | Die Entitäten kommen von selbst zurück: Discovery und Werte liegen als retained-Nachrichten im Broker. Zusätzlich meldet sich Home Assistant beim Hochfahren auf `homeassistant/status`; das Add-on sendet daraufhin alles erneut. |
+| **Das Add-on** | Beim Start wird zuerst das zuletzt abgelegte Ergebnis erneut gesendet – ohne Netz und ohne Preise, die Entitäten haben also sofort wieder Werte. Danach läuft die normale Neuberechnung. |
+| **Der Host** | Wie ein Neustart des Add-ons. `/data` liegt auf der Festplatte. |
+| **Der MQTT-Broker** | Mosquitto hält retained-Nachrichten über einen Neustart. Das Add-on hält die Verbindung offen und verbindet sich automatisch neu. |
+| **Add-on gestoppt oder abgestürzt** | Der Broker meldet die Entitäten über den Letzten Willen als *nicht verfügbar*. Sie zeigen dann nichts an, statt stumm veraltete Werte weiterzuführen. |
+
+Die Verbindung zum Broker bleibt bestehen, solange das Add-on läuft – nur so greift
+der Letzte Wille. Beim geplanten Beenden meldet sich das Add-on ausdrücklich ab.
+
+Über die **Zustands-API** (ohne Broker) gilt das alles nicht: Dort sind die Entitäten
+nach einem Neustart von Home Assistant weg, bis das Add-on erneut rechnet. Es tut das
+beim eigenen Start, aber ein HA-Neustart allein löst nichts aus.
+
+### Was in `/data` liegt und Neustarts übersteht
+
+| Datei | Inhalt |
+|---|---|
+| `settings.json` | alle Einstellungen aus der Oberfläche |
+| `dynprice.db` | Prognosen, Ist-Werte, Laufprotokoll |
+| `cache/` | Rohantworten von energy-charts, macht Läufe offline wiederholbar |
+
+Nicht dauerhaft ist nur der Merker, ob heute schon gerechnet wurde. Nach einem Neustart
+rechnet das Add-on deshalb einmal zusätzlich – das Ergebnis überschreibt den Eintrag
+desselben Tages und richtet keinen Schaden an.
+
 ## Auswertung
 
 Der Reiter **Verlauf** zeigt Ersparnis je Tag (Prognose gegen Ist), die kumulierte Summe,

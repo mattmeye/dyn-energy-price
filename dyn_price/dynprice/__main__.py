@@ -47,6 +47,9 @@ def main() -> int:
     def shutdown(*_: object) -> None:
         _LOG.info("Beende Add-on")
         stop_event.set()
+        # Abmelden, damit die Entitäten in Home Assistant als nicht verfügbar
+        # erscheinen statt veraltete Werte zu zeigen.
+        runner.close()
         server.shutdown()
 
     signal.signal(signal.SIGTERM, shutdown)

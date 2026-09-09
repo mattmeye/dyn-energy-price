@@ -15,7 +15,7 @@ from .hass import HomeAssistant, StatPoint, counter_to_hourly
 from .limits import apply as apply_limits
 from .limits import resolve as resolve_limits
 from .prices import PriceProvider, PricesUnavailable
-from .mqttpublish import MqttPublisher, broker_from_supervisor
+from .mqttpublish import MqttSession, broker_from_supervisor
 from .publish import publish as publish_via_rest
 from .reconcile import backfill
 from .store import Store
@@ -249,7 +249,7 @@ class Runner:
         self.store.save_forecast(evaluation)
         published, weg = 0, "aus"
         if publish_states and settings.publish_sensors and self.hass.configured:
-            published, weg = self.publish_result(settings, evaluation)
+            published, weg = self.publish_result(settings, evaluation.as_dict())
 
         message = (
             f"Ersparnis {evaluation.saving_vs_fixed_eur:.2f} EUR, "
@@ -271,7 +271,51 @@ class Runner:
                 _LOG.info("MQTT-Broker %s:%s gefunden", self._broker.host, self._broker.port)
         return self._broker
 
-    def publish_result(self, settings: Settings, evaluation: DayEvaluation) -> tuple[int, str]:
+    def session(self) -> Any:
+        """Dauerhafte MQTT-Verbindung, damit der Letzte Wille greift."""
+        if getattr(self, "_session", None) is None:
+            broker = self.broker()
+            if broker is None:
+                return None
+            self._session = MqttSession(
+                broker, on_home_assistant_online=self.republish_latest
+            )
+        return self._session
+
+    def close(self) -> None:
+        """Beim Beenden abmelden, damit die Entitäten nicht verfügbar werden."""
+        session = getattr(self, "_session", None)
+        if session is not None:
+            session.stop()
+            self._session = None
+
+    def latest_payload(self) -> dict[str, Any] | None:
+        """Zuletzt abgelegtes Ergebnis, bevorzugt das für morgen."""
+        today = datetime.now(tz=self.tz).date()
+        for tag in (today + timedelta(days=1), today):
+            row = self.store.get_forecast(tag)
+            if row is not None:
+                return row.payload
+        return None
+
+    def republish_latest(self) -> int:
+        """Das zuletzt abgelegte Ergebnis erneut veröffentlichen.
+
+        Wird beim Start und nach einem Neustart von Home Assistant aufgerufen.
+        Rechnet nicht neu - der Folgetag ist mitten in der Nacht ohnehin nicht
+        neu bewertbar, das gespeicherte Ergebnis aber sofort verfügbar.
+        """
+        payload = self.latest_payload()
+        if payload is None:
+            return 0
+        settings = self.settings_store.load()
+        if not settings.publish_sensors:
+            return 0
+        anzahl, weg = self.publish_result(settings, payload)
+        _LOG.info("Ergebnis für %s erneut veröffentlicht (%s)", payload.get("day"), weg)
+        return anzahl
+
+    def publish_result(self, settings: Settings, payload: dict[str, Any]) -> tuple[int, str]:
         """Entitäten bereitstellen: bevorzugt über MQTT, sonst über die Zustands-API.
 
         MQTT-Discovery legt echte Entitäten an, die einen Neustart von Home
@@ -279,10 +323,10 @@ class Runner:
         """
         modus = settings.sensor_mode
         if modus in {"auto", "mqtt"}:
-            broker = self.broker()
-            if broker is not None:
+            session = self.session()
+            if session is not None:
                 try:
-                    return MqttPublisher(broker).publish(evaluation), "MQTT"
+                    return session.publish(payload), "MQTT"
                 except Exception as err:
                     _LOG.warning("MQTT-Veröffentlichung fehlgeschlagen: %s", err)
                     if modus == "mqtt":
@@ -292,7 +336,7 @@ class Runner:
                 return 0, "MQTT (kein Broker)"
         if modus == "mqtt":
             return 0, "MQTT (fehlgeschlagen)"
-        return publish_via_rest(self.hass, evaluation), "Zustands-API"
+        return publish_via_rest(self.hass, payload), "Zustands-API"
 
     def run_daily(self) -> dict[str, Any]:
         """Regellauf: Folgetag bewerten und offene Ist-Werte nachtragen."""

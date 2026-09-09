@@ -33,7 +33,16 @@ class Scheduler(threading.Thread):
     # -------------------------------------------------------------- Ablauf
 
     def startup(self) -> None:
-        """Nach dem Start einmal rechnen, damit die Sensoren sofort existieren."""
+        """Nach dem Start rechnen, damit die Entitäten sofort Werte haben.
+
+        Zuerst wird das zuletzt abgelegte Ergebnis erneut gesendet: Das geht
+        ohne Netz und ohne Preise und füllt die Entitäten sofort, auch wenn
+        die anschließende Neuberechnung scheitert.
+        """
+        try:
+            self.runner.republish_latest()
+        except Exception:
+            _LOG.exception("Erneutes Senden beim Start fehlgeschlagen")
         today = datetime.now(tz=self.runner.tz).date()
         result = self.runner.run_day(today + timedelta(days=1))
         if result.get("status") != "ok":

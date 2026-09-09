@@ -22,6 +22,9 @@ Stand September 2026.
 - Ingress-Oberfläche mit Einrichtungsassistent, Diagrammen und Verlauf.
 - Ergebnisse als Entitäten in Home Assistant, über MQTT-Discovery (dauerhaft, im
   Geräteregister) mit Rückfall auf die Zustands-API, wenn kein Broker da ist.
+- Neustartfest: Dauerverbindung zum Broker, damit der Letzte Wille greift; erneutes
+  Senden beim Start und wenn Home Assistant sich zurückmeldet; ausdrückliches
+  Abmelden beim Beenden.
 - Optionale Szenarien: Speicher 60 kWh, Wärmepumpe.
 - Wirkungsgrad in drei Stufen (Zellen, Ladegerät, Wechselrichter) statt einer Zahl,
   daraus getrennte Wege für Netz- und PV-Ladung; bei DC-gekoppelter PV entfällt der

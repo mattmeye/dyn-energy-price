@@ -15,8 +15,9 @@ def make_evaluation(settings, prices=None, start_energy=0.0):
     slots = slot_starts_utc(DAY, TZ)
     bundle = HistoryBundle(household_hourly=flat_history(), pv_forecast_state=pv_state(3.0))
     forecast = build_day_forecast(DAY, slots, TZ, settings, bundle)
-    return evaluate_day(forecast, prices or night_cheap_prices(slots), settings, TZ,
-                        settings.scenario_battery(), None, start_energy_kwh=start_energy)
+    evaluation = evaluate_day(forecast, prices or night_cheap_prices(slots), settings, TZ,
+                              settings.scenario_battery(), None, start_energy_kwh=start_energy)
+    return evaluation.as_dict()
 
 
 class FakeHass:
