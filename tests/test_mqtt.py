@@ -6,7 +6,7 @@ import json
 
 from conftest import DAY, TZ, flat_history, night_cheap_prices, pv_state
 
-from nsforecast.config import AddonOptions, Settings, SettingsStore
+from nsforecast.config import AddonOptions, SettingsStore
 from nsforecast.evaluate import evaluate_day
 from nsforecast.forecast import HistoryBundle, build_day_forecast
 from nsforecast.mqttpublish import (
