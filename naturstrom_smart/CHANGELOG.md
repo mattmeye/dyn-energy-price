@@ -17,6 +17,13 @@ Erste Fassung.
 - Ingress-Oberfläche mit Einrichtungsassistent, Diagrammen und Verlauf.
 - Ergebnisse als Entitäten in Home Assistant.
 - Optionale Szenarien: Speicher 60 kWh, Wärmepumpe.
+- Wirkungsgrad in drei Stufen (Zellen, Ladegerät, Wechselrichter) statt einer Zahl,
+  daraus getrennte Wege für Netz- und PV-Ladung; bei DC-gekoppelter PV entfällt der
+  Ladegerät-Verlust.
+- Netzladeleistung aus dem Typenschild (Anzahl Geräte × Ladestrom × Batteriespannung),
+  vorbelegt mit 3 × MultiPlus-II 48/5000/70 dreiphasig.
+- PV-Reserve ab Fensterbeginn statt ab Fensterende gerechnet; sonst konnte der
+  Optimierer das Fenster über den PV-Tag hinaus verlängern und die Reserve wegrechnen.
 - Netzladeleistung getrennt von der PV-Ladeleistung: Netzladung läuft über das
   Ladegerät des Wechselrichters und ist meist deutlich kleiner als das, was der
   Speicher aus den MPPT-Reglern annimmt.

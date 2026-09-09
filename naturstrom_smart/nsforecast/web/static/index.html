@@ -109,26 +109,43 @@
         <div class="row"><label for="battery.soc_max_pct">Obere SoC-Grenze (%)</label><input id="battery.soc_max_pct" type="number" step="1"></div>
         <div class="row"><label for="battery.usable_kwh_override">Nutzbare Kapazität überschreiben (kWh)</label><input id="battery.usable_kwh_override" type="number" step="0.1"></div>
         <div class="row"><span class="hint">0 lässt die nutzbare Kapazität aus Nennkapazität und SoC-Grenzen berechnen.</span></div>
-        <div class="row"><label for="battery.charge_kw">Ladeleistung DC, aus der PV (kW)</label><input id="battery.charge_kw" type="number" step="0.1"></div>
-        <div class="row"><span class="hint">Was der Speicher über die MPPT-Regler aufnimmt.</span></div>
-        <div class="row"><label for="battery.grid_charge_kw">Ladeleistung aus dem Netz (kW)</label><input id="battery.grid_charge_kw" type="number" step="0.1"></div>
-        <div class="row"><span class="hint">Das Ladegerät des Wechselrichters, meist deutlich kleiner: eine MultiPlus-II 48/5000/70 lädt mit 70 A × 52 V ≈ 3,6 kW. Dieser Wert bestimmt, wie lange das Ladefenster sein muss.</span></div>
-        <div class="row"><label for="battery.discharge_kw">Maximale Entladeleistung (kW)</label><input id="battery.discharge_kw" type="number" step="0.1"></div>
+        <div class="row"><label for="battery.charger_count">Anzahl Wechselrichter/Ladegeräte</label><input id="battery.charger_count" type="number" step="1" min="1"></div>
+        <div class="row"><label for="battery.charger_current_a">Ladestrom je Gerät (A)</label><input id="battery.charger_current_a" type="number" step="1"></div>
+        <div class="row"><span class="hint">Vom Typenschild, hinter dem zweiten Schrägstrich: MultiPlus-II 48/5000/<b>70</b>. Daraus und aus der Batteriespannung ergibt sich die Netzladeleistung – die Größe, die bestimmt, wie lang das Ladefenster sein muss.</span></div>
+        <div class="row"><label for="battery.grid_charge_kw_override">Netzladeleistung überschreiben (kW)</label><input id="battery.grid_charge_kw_override" type="number" step="0.1"></div>
+        <div class="row"><span class="hint">0 = aus Anzahl, Ladestrom und Batteriespannung rechnen.</span></div>
+
+        <div class="row"><label for="battery.pv_coupling">PV-Anbindung</label>
+          <select id="battery.pv_coupling">
+            <option value="dc">DC – über MPPT-Regler direkt am Speicher</option>
+            <option value="ac">AC – eigener PV-Wechselrichter</option>
+          </select></div>
+        <div class="row"><span class="hint">Bei DC-Kopplung lädt die PV am Ladegerät vorbei: mehr Leistung und weniger Verlust auf diesem Weg.</span></div>
+        <div class="row"><label for="battery.mppt_charge_kw">Summe der MPPT-Regler (kW)</label><input id="battery.mppt_charge_kw" type="number" step="0.1"></div>
+        <div class="row"><label for="battery.charge_kw_override">Ladeannahme überschreiben (kW)</label><input id="battery.charge_kw_override" type="number" step="0.1"></div>
+        <div class="row"><span class="hint">0 = aus PV-Weg und Ladegeräten rechnen. Eine gemeldete Ladestromgrenze (CCL) hat immer Vorrang.</span></div>
+
+        <div class="row"><label for="battery.discharge_kw">Entladeleistung gesamt (kW)</label><input id="battery.discharge_kw" type="number" step="0.1"></div>
+        <div class="row"><span class="hint">Dauerleistung aller Geräte: MultiPlus-II 48/5000 liefert je 4 kW, zu dritt also 12 kW.</span></div>
         <div class="row"><label for="battery.nominal_voltage_v">Batteriespannung nominal (V)</label><input id="battery.nominal_voltage_v" type="number" step="0.1"></div>
         <div class="row"><span class="hint">Ersatzwert, falls keine Spannungs-Entität gewählt ist. Rechnet Stromgrenzen in Ampere in Leistung um.</span></div>
-        <div class="row"><label for="battery.ac_input_limit_a">Eingangsstrombegrenzung (A)</label><input id="battery.ac_input_limit_a" type="number" step="1"></div>
-        <div class="row"><span class="hint">0 = keine Begrenzung. Begrenzt zusätzlich, was aus dem Netz durch den Wechselrichter fließt.</span></div>
+        <div class="row"><label for="battery.ac_input_limit_a">Eingangsstrombegrenzung je Phase (A)</label><input id="battery.ac_input_limit_a" type="number" step="1"></div>
+        <div class="row"><span class="hint">0 = keine Begrenzung. Begrenzt zusätzlich, was aus dem Netz durch die Wechselrichter fließt.</span></div>
         <div class="row"><label for="battery.mains_voltage_v">Netzspannung (V)</label><input id="battery.mains_voltage_v" type="number" step="1"></div>
         <div class="row"><label for="battery.phases">Phasen</label><input id="battery.phases" type="number" step="1" min="1" max="3"></div>
-        <div class="row"><label for="battery.roundtrip_efficiency">Wirkungsgrad (Zyklus, 0–1)</label><input id="battery.roundtrip_efficiency" type="number" step="0.01"></div>
-        <div class="row"><span class="hint">Weg Netz → Speicher → Haus. Victron-ESS mit LFP: etwa 0,85 (Ladegerät 0,93 × Zellen 0,97 × Wechselrichter 0,94). Der Standby der MultiPlus gehört nicht hier hinein.</span></div>
+
+        <div class="row"><label for="battery.battery_dc_efficiency">Wirkungsgrad Zellen DC (0–1)</label><input id="battery.battery_dc_efficiency" type="number" step="0.01"></div>
+        <div class="row"><span class="hint">Der einzige Anteil, der sich aus den eigenen Zählern messen lässt. LFP: 0,96–0,98.</span></div>
+        <div class="row"><label for="battery.charger_efficiency">Wirkungsgrad Ladegerät AC→DC (0–1)</label><input id="battery.charger_efficiency" type="number" step="0.01"></div>
+        <div class="row"><label for="battery.inverter_efficiency">Wirkungsgrad Wechselrichter DC→AC (0–1)</label><input id="battery.inverter_efficiency" type="number" step="0.01"></div>
         <div class="row">
           <span></span>
           <span class="actions">
-            <button class="ghost" type="button" id="estimate-efficiency">Aus Speicherdaten schätzen</button>
+            <button class="ghost" type="button" id="estimate-efficiency">Zellen-Wirkungsgrad aus Speicherdaten schätzen</button>
             <span class="status-line" id="efficiency-status"></span>
           </span>
         </div>
+        <div class="row"><span class="hint" id="efficiency-summary"></span></div>
         <div class="row"><label for="battery.grid_charge_controllable">Netzladung steuerbar</label><input id="battery.grid_charge_controllable" type="checkbox"></div>
         <div class="row"><span class="hint">Nur zur Dokumentation – das Add-on steuert nichts, es rechnet nur.</span></div>
       </fieldset>

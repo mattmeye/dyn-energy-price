@@ -32,10 +32,30 @@ def test_ueberschriebene_kapazitaet_hat_vorrang():
     assert battery.usable_kwh == 22.0
 
 
-def test_wirkungsgrad_wird_auf_laden_und_entladen_aufgeteilt():
-    battery = Battery(roundtrip_efficiency=0.81)
-    assert round(battery.charge_efficiency, 6) == 0.9
-    assert round(battery.charge_efficiency * battery.discharge_efficiency, 6) == 0.81
+def test_wirkungsgrad_setzt_sich_aus_drei_stufen_zusammen():
+    battery = Battery(battery_dc_efficiency=0.81, charger_efficiency=1.0, inverter_efficiency=1.0)
+    assert round(battery.grid_charge_efficiency, 6) == 0.9
+    assert round(battery.roundtrip_efficiency, 6) == 0.81
+
+
+def test_pv_pfad_umgeht_bei_dc_kopplung_das_ladegeraet():
+    dc = Battery(pv_coupling="dc")
+    ac = Battery(pv_coupling="ac")
+    assert dc.pv_charge_efficiency > ac.pv_charge_efficiency
+    assert round(ac.pv_charge_efficiency, 6) == round(ac.grid_charge_efficiency, 6)
+    # Der Weg aus dem Netz ist von der Kopplung unberührt.
+    assert dc.grid_charge_efficiency == ac.grid_charge_efficiency
+
+
+def test_netzladeleistung_folgt_dem_typenschild():
+    battery = Battery(charger_count=3, charger_current_a=70.0, nominal_voltage_v=51.2)
+    assert round(battery.grid_charge_kw, 2) == 10.75
+    assert Battery(grid_charge_kw_override=4.0).grid_charge_kw == 4.0
+
+
+def test_ac_gekoppelte_pv_teilt_sich_die_ladegeraete():
+    battery = Battery(pv_coupling="ac", mppt_charge_kw=30.0)
+    assert battery.charge_kw == battery.grid_charge_kw
 
 
 def test_szenario_verdoppelt_nur_die_kapazitaet():

@@ -206,8 +206,8 @@ def apply(battery: Battery, limits: ResolvedLimits) -> Battery:
 
     updated = replace(
         battery,
-        charge_kw=limits.charge_kw,
-        grid_charge_kw=limits.grid_charge_kw,
+        charge_kw_override=limits.charge_kw,
+        grid_charge_kw_override=limits.grid_charge_kw,
         discharge_kw=limits.discharge_kw,
     )
     if limits.soc_min_pct is not None:

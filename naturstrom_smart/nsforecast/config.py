@@ -65,14 +65,25 @@ class Battery:
     soc_max_pct: float = 100.0
     usable_kwh_override: float = 0.0   # 0 = aus Nennkapazität und SoC-Grenzen ableiten
 
-    # Ladeleistung auf der Gleichstromseite: was der Speicher insgesamt annimmt,
-    # also der Weg über die MPPT-Regler aus der PV.
-    charge_kw: float = 10.0
-    # Ladeleistung aus dem Netz: der Weg über das Ladegerät des Wechselrichters.
-    # Bei einer MultiPlus-II 48/5000/70 sind das rund 70 A mal 52 V, also 3,6 kW -
-    # deutlich weniger, als die Anlage aus der PV aufnimmt.
-    grid_charge_kw: float = 3.6
-    discharge_kw: float = 10.0
+    # Wechselrichter/Ladegeräte. Vorbelegt mit 3 x MultiPlus-II 48/5000/70:
+    # der Ladestrom steht auf dem Typenschild hinter dem zweiten Schrägstrich.
+    charger_count: int = 3
+    charger_current_a: float = 70.0
+    # 0 = Netzladeleistung aus Anzahl, Ladestrom und Batteriespannung ableiten.
+    grid_charge_kw_override: float = 0.0
+    # 0 = gleichstromseitige Ladeannahme aus PV-Weg und Ladegeräten ableiten.
+    # Wird gesetzt, wenn das BMS eine Ladestromgrenze meldet.
+    charge_kw_override: float = 0.0
+
+    # Wie die PV angebunden ist: "dc" über MPPT-Regler direkt an den Speicher,
+    # "ac" über einen eigenen Wechselrichter. Bestimmt, ob PV-Ladung durch das
+    # Ladegerät läuft - und damit Ladeleistung und Wirkungsgrad dieses Weges.
+    pv_coupling: str = "dc"
+    mppt_charge_kw: float = 10.0      # Summe der MPPT-Regler, nur bei "dc"
+
+    # Dauer-Ausgangsleistung aller Geräte zusammen. MultiPlus-II 48/5000:
+    # 4000 W je Gerät bei 25 Grad, also 12 kW zu dritt.
+    discharge_kw: float = 12.0
 
     # Ersatzwert, wenn keine Spannungs-Entität gewählt ist (16s LFP).
     nominal_voltage_v: float = 51.2
@@ -80,11 +91,14 @@ class Battery:
     # dem Netz durch das Gerät fließen kann. 0 = keine Begrenzung.
     ac_input_limit_a: float = 0.0
     mains_voltage_v: float = 230.0
-    phases: int = 1
-    # Netz -> Speicher -> Haus. Für ein Victron-ESS mit LFP: Ladegerät ~0,93 mal
-    # Zellen ~0,97 mal Wechselrichter ~0,94. Der Standby des MultiPlus gehört
-    # nicht hierher, er steckt bereits im gemessenen Verbrauchsprofil.
-    roundtrip_efficiency: float = 0.85
+    phases: int = 3
+    # Wirkungsgrad in drei Stufen statt einer Zahl: nur die erste ist aus den
+    # eigenen Zählern messbar, die beiden anderen sind Geräteeigenschaften.
+    # Der Standby der Geräte gehört in keine davon - er steckt bereits im
+    # gemessenen Verbrauchsprofil und wäre hier doppelt gezählt.
+    battery_dc_efficiency: float = 0.97    # Zellen, Gleichstromseite
+    charger_efficiency: float = 0.93       # AC -> DC im Ladegerät
+    inverter_efficiency: float = 0.94      # DC -> AC im Wechselrichter
     grid_charge_controllable: bool = False
 
     @property
@@ -95,12 +109,59 @@ class Battery:
         return self.nominal_kwh * span
 
     @property
-    def charge_efficiency(self) -> float:
-        return max(0.01, self.roundtrip_efficiency) ** 0.5
+    def grid_charge_kw(self) -> float:
+        """Was aus dem Netz über die Ladegeräte in den Speicher geht."""
+        if self.grid_charge_kw_override > 0:
+            return self.grid_charge_kw_override
+        return max(1, self.charger_count) * self.charger_current_a * self.nominal_voltage_v / 1000.0
+
+    @property
+    def pv_charge_kw(self) -> float:
+        """Was die PV in den Speicher bringt.
+
+        DC-gekoppelt über die MPPT-Regler, AC-gekoppelt durch die Ladegeräte -
+        nie mehr, als der Speicher insgesamt annimmt.
+        """
+        if self.pv_coupling == "ac":
+            return min(self.grid_charge_kw, self.charge_kw)
+        return min(self.mppt_charge_kw, self.charge_kw)
+
+    @property
+    def charge_kw(self) -> float:
+        """Was der Speicher gleichstromseitig insgesamt annimmt.
+
+        Bei DC-Kopplung können MPPT-Regler und Ladegeräte gleichzeitig liefern;
+        bei AC-Kopplung teilen sich beide Wege dieselben Ladegeräte.
+        """
+        if self.charge_kw_override > 0:
+            return self.charge_kw_override
+        if self.pv_coupling == "ac":
+            return self.grid_charge_kw
+        return self.mppt_charge_kw + self.grid_charge_kw
+
+    @property
+    def _half_dc(self) -> float:
+        return max(0.01, self.battery_dc_efficiency) ** 0.5
+
+    @property
+    def pv_charge_efficiency(self) -> float:
+        """PV in den Speicher. DC-gekoppelt ohne, AC-gekoppelt mit Ladegerät."""
+        if self.pv_coupling == "ac":
+            return self._half_dc * self.charger_efficiency
+        return self._half_dc
+
+    @property
+    def grid_charge_efficiency(self) -> float:
+        return self._half_dc * self.charger_efficiency
 
     @property
     def discharge_efficiency(self) -> float:
-        return max(0.01, self.roundtrip_efficiency) ** 0.5
+        return self._half_dc * self.inverter_efficiency
+
+    @property
+    def roundtrip_efficiency(self) -> float:
+        """Netz -> Speicher -> Haus, der für die Verschiebung maßgebliche Weg."""
+        return self.grid_charge_efficiency * self.discharge_efficiency
 
     def energy_above_min(self, soc_pct: float) -> float:
         """Nutzbare Energie im Speicher oberhalb der unteren SoC-Grenze."""

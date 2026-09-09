@@ -371,6 +371,22 @@
     }).join("");
   }
 
+  function showEfficiency() {
+    function val(id) { return parseFloat(($(id) || {}).value) || 0; }
+    var dc = val("battery.battery_dc_efficiency");
+    var lader = val("battery.charger_efficiency");
+    var wr = val("battery.inverter_efficiency");
+    var kopplung = ($("battery.pv_coupling") || {}).value === "ac" ? "ac" : "dc";
+    var halb = Math.sqrt(Math.max(0.01, dc));
+    var netz = halb * lader * halb * wr;
+    var pv = (kopplung === "ac" ? halb * lader : halb) * halb * wr;
+    var box = $("efficiency-summary");
+    if (box) {
+      box.innerHTML = "Daraus folgt: Netz → Speicher → Haus <b>" + netz.toFixed(3) +
+        "</b> (maßgeblich für die Verschiebung), PV → Speicher → Haus <b>" + pv.toFixed(3) + "</b>.";
+    }
+  }
+
   function renderSettings() {
     var settings = state.settings;
     ["battery", "ev", "tariff", "forecast", "heatpump", "scenarios"].forEach(function (group) {
@@ -379,6 +395,12 @@
       });
     });
     setValue("publish_sensors", settings.publish_sensors);
+    showEfficiency();
+    ["battery.battery_dc_efficiency", "battery.charger_efficiency",
+     "battery.inverter_efficiency", "battery.pv_coupling"].forEach(function (id) {
+      var field = $(id);
+      if (field) field.addEventListener("change", showEfficiency);
+    });
     renderMonthlyRows();
     renderEntityRows();
   }
@@ -454,7 +476,8 @@
     $("estimate-efficiency").addEventListener("click", function () {
       $("efficiency-status").textContent = "Speicherdaten werden ausgewertet …";
       api("api/efficiency?days=30").then(function (data) {
-        setValue("battery.roundtrip_efficiency", data.ac_roundtrip.toFixed(2));
+        setValue("battery.battery_dc_efficiency", data.dc_roundtrip.toFixed(3));
+        showEfficiency();
         var herkunft = data.measured
           ? "gemessen über " + data.days + " Tage: " + fmt(data.charged_kwh, 0) + " kWh geladen, " +
             fmt(data.discharged_kwh, 0) + " kWh entladen → Speicher " +
@@ -464,7 +487,7 @@
           " · mit Ladegerät " + fmt(data.charger_efficiency * 100, 0) + " % und Wechselrichter " +
           fmt(data.inverter_efficiency * 100, 0) + " %";
         $("efficiency-status").textContent =
-          "Vorschlag " + data.ac_roundtrip.toFixed(2) + " (" + herkunft + wandler + ")" +
+          "Zellen " + data.dc_roundtrip.toFixed(3) + " (" + herkunft + wandler + ")" +
           (data.notes.length ? " – " + data.notes.join("; ") : "") +
           ". Noch nicht gespeichert.";
       }).catch(function (error) {

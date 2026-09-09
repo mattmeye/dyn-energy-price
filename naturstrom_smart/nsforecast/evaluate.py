@@ -109,7 +109,9 @@ def _evaluate_window(
     slot_count: int,
 ) -> ShiftPlan:
     """Günstigste Ladung im Fenster gegen teuersten Bezug danach aufrechnen."""
-    eff_c = battery.charge_efficiency
+    # Verschoben wird Energie, die aus dem Netz kommt: Ladegerät und Zellen rein,
+    # Zellen und Wechselrichter raus.
+    eff_c = battery.grid_charge_efficiency
     roundtrip = eff_c * battery.discharge_efficiency
 
     charge = [0.0] * slot_count
@@ -231,7 +233,7 @@ def optimise(
                 capacity_available = float("inf")
                 pv_reserved = 0.0
             else:
-                pv_reserved = pv_reserve_after(baseline.pv_surplus_kwh, end, battery, duration_h)
+                pv_reserved = pv_reserve_after(baseline.pv_surplus_kwh, start, battery, duration_h)
                 capacity_available = max(0.0, battery.usable_kwh - soc_at_start - pv_reserved)
             if capacity_available <= 1e-9:
                 continue
@@ -273,7 +275,7 @@ def build_storage_check(
 ) -> StorageCheck:
     """Bedarf und Speicherfähigkeit für das gewählte Fenster gegenüberstellen."""
     eff_d = battery.discharge_efficiency
-    roundtrip = battery.charge_efficiency * eff_d
+    roundtrip = battery.grid_charge_efficiency * eff_d
     discharge_limit = battery.discharge_kw * duration_h
     window_hours = max(0.0, (plan.end_index - plan.start_index) * duration_h)
     has_window = plan.end_index > plan.start_index

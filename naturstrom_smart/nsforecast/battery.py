@@ -43,9 +43,10 @@ def simulate_baseline(
     und erst danach aus dem Netz.
     """
     usable = battery.usable_kwh
-    charge_limit = battery.charge_kw * duration_h
+    charge_limit = battery.pv_charge_kw * duration_h
     discharge_limit = battery.discharge_kw * duration_h
-    eff_c = battery.charge_efficiency
+    # Hier lädt nur die PV; der Weg aus dem Netz läuft über den Optimierer.
+    eff_c = battery.pv_charge_efficiency
     eff_d = battery.discharge_efficiency
 
     soc = max(0.0, min(usable, start_energy_kwh))
@@ -168,10 +169,15 @@ def pv_reserve_after(
     battery: Battery,
     duration_h: float,
 ) -> float:
-    """Kapazität, die nach Fensterende noch für PV-Überschuss gebraucht wird."""
-    charge_limit = battery.charge_kw * duration_h
+    """Kapazität, die ab diesem Slot noch für PV-Überschuss gebraucht wird.
+
+    Gemessen wird ab dem **Beginn** des Ladefensters. Ab dem Ende gemessen
+    könnte der Optimierer das Fenster einfach über den PV-Tag hinaus verlängern
+    und die Reserve so wegrechnen, ohne dass sich physisch etwas ändert.
+    """
+    charge_limit = battery.pv_charge_kw * duration_h
     stored = sum(
-        min(max(0.0, surplus), charge_limit) * battery.charge_efficiency
+        min(max(0.0, surplus), charge_limit) * battery.pv_charge_efficiency
         for surplus in pv_surplus_kwh[from_index:]
     )
     return min(stored, battery.usable_kwh)

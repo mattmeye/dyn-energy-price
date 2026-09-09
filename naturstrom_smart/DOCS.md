@@ -44,34 +44,33 @@ ergibt sich aus Nennkapazität und SoC-Grenzen, kann aber überschrieben werden.
 
 #### Lade- und Entladeleistung
 
-Für die Bewertung sind es **drei verschiedene Grenzen**, nicht eine:
+Für die Bewertung sind es **drei verschiedene Wege**, nicht einer:
 
-| Grenze | Weg | typisch |
+| Weg | worüber | Vorbelegung |
 |---|---|---|
-| Ladeleistung DC | PV über die MPPT-Regler direkt auf die Gleichstromseite | so groß wie die Regler |
-| Ladeleistung aus dem Netz | über das Ladegerät des Wechselrichters | MultiPlus-II 48/5000/70: 70 A × 52 V ≈ 3,6 kW |
-| Entladeleistung | über den Wechselrichter ins Haus | Dauerleistung des Geräts |
+| PV in den Speicher | DC-gekoppelt über die MPPT-Regler, AC-gekoppelt über die Ladegeräte | 10 kW (MPPT-Summe) |
+| Netz in den Speicher | Ladegeräte der Wechselrichter | 3 × 70 A × 51,2 V = **10,75 kW** |
+| Speicher ins Haus | Wechselrichter | 3 × 4 kW = **12 kW** |
 
-Für die Verschiebung zählt die **mittlere** Zeile. Sie ist meist die kleinste und
-bestimmt, wie lang das Ladefenster ausfallen muss:
+Die Vorbelegung entspricht der Anlage: **3 × MultiPlus-II 48/5000/70, dreiphasig**.
+Der Ladestrom steht auf dem Typenschild hinter dem zweiten Schrägstrich; Anzahl und
+Strom werden eingetragen, die Netzladeleistung rechnet das Add-on daraus mit der
+Batteriespannung aus. Bei abweichenden Geräten also nur diese beiden Zahlen ändern.
+
+Für die Verschiebung zählt die **mittlere** Zeile – sie bestimmt, wie lang das
+Ladefenster ausfallen muss:
 
 | Netzladeleistung | Fenster | verschoben | Ersparnis |
 |---|---|---|---|
-| 10,0 kW | 3,00 h | 24,7 kWh | 1,78 € |
-| 5,0 kW | 4,00 h | 17,0 kWh | 1,49 € |
-| 3,6 kW | 4,00 h | 12,2 kWh | 1,32 € |
-| 2,3 kW | 4,00 h | 7,8 kWh | 1,15 € |
+| 3,58 kW (ein Gerät) | 4,00 h | 12,2 kWh | 1,31 € |
+| 10,75 kW (drei Geräte) | 2,75 h | 24,8 kWh | 1,77 € |
 
 (Wintertag, 30 kWh Bezug, günstiges Fenster 01–05 Uhr)
 
-Das wirkt bis in die Szenarien hinein: Mit einem 3,6-kW-Ladegerät bringt der
-Ausbau auf 60 kWh Speicher **nichts** – in vier günstigen Stunden lassen sich
-ohnehin nur gut 14 kWh nachladen. Erst ein größeres Ladegerät macht mehr
-Kapazität nutzbar.
-
-Zusätzlich deckelt die **Eingangsstrombegrenzung** des Wechselrichters, was
-überhaupt aus dem Netz durch das Gerät fließt: 16 A einphasig sind 3,7 kW,
-32 A sind 7,4 kW, dreiphasig entsprechend mehr.
+Zusätzlich deckelt die **Eingangsstrombegrenzung** der Wechselrichter, was aus dem
+Netz durch die Geräte fließt: 16 A dreiphasig sind 11,0 kW, 32 A sind 22,1 kW. Bei
+drei Geräten liegt die Grenze also erst bei 16 A und darunter im Weg. Der Wert steht
+in der Victron-Oberfläche unter Einstellungen → System → AC-Eingangsstrombegrenzung.
 
 #### Grenzen live aus Home Assistant
 
@@ -91,41 +90,44 @@ hinterlegt, wird sie live gelesen statt fest eingetragen.
 
 #### Wirkungsgrad
 
-Gemeint ist der Weg **Netz → Speicher → Haus**, also Ladegerät, Zellen und
-Wechselrichter zusammen. Für ein Victron-ESS mit LFP-Speicher:
+Statt einer Zahl stehen drei Stufen in der Einrichtung, weil nur die erste messbar ist:
 
-| Stufe | typisch |
-|---|---|
-| Ladegerät AC→DC (MultiPlus-II) | 0,92–0,94 |
-| LFP-Zellen DC→DC | 0,96–0,98 |
-| Wechselrichter DC→AC | 0,93–0,95 |
-| **zusammen** | **0,82–0,88**, Vorbelegung 0,85 |
+| Stufe | Vorbelegung | Herkunft |
+|---|---|---|
+| Zellen DC→DC | 0,97 | aus den eigenen Zählern messbar |
+| Ladegerät AC→DC | 0,93 | Geräteeigenschaft |
+| Wechselrichter DC→AC | 0,94 | Geräteeigenschaft |
 
-Der Standby der MultiPlus (etwa 15–25 W) und des Cerbo gehört **nicht** hierher. Er
-läuft unabhängig vom Laden und steckt bereits im gemessenen Verbrauchsprofil; im
-Wirkungsgrad wäre er doppelt gezählt.
+Daraus ergeben sich zwei Wege, die das Add-on getrennt rechnet:
 
-Die Schaltfläche **Aus Speicherdaten schätzen** wertet die Zähler für Speicher-Ladung
-und -Entladung der letzten 30 Tage aus. Deren Verhältnis ist der Wirkungsgrad des
-Speichers allein – bei Victron messen diese Zähler am Shunt, also auf der
-Gleichstromseite. Ladegerät und Wechselrichter werden mit 0,93 und 0,94 ergänzt.
-Liegt das gemessene Verhältnis außerhalb von 0,80 bis 1,00, passen die beiden Zähler
-nicht zusammen; dann wird ein typischer LFP-Wert angesetzt und das im Ergebnis vermerkt.
-Der Vorschlag landet im Feld, gespeichert wird er erst mit **Speichern**.
+- **Netz → Speicher → Haus: 0,848.** Maßgeblich für die Verschiebung, weil nur
+  dieser Weg beim Verlagern des Netzbezugs durchlaufen wird.
+- **PV → Speicher → Haus: 0,912** bei DC-Kopplung, weil die MPPT-Regler am
+  Ladegerät vorbei laden. Bei AC-Kopplung sind es ebenfalls 0,848.
+
+Der Standby der Geräte gehört in **keine** dieser Stufen. Er läuft unabhängig vom
+Laden und steckt bereits im gemessenen Verbrauchsprofil; hier wäre er doppelt gezählt.
+Bei drei MultiPlus-II sind das grob 45–60 W dauerhaft, also rund 1,2 kWh am Tag.
+
+Die Schaltfläche **Zellen-Wirkungsgrad aus Speicherdaten schätzen** wertet die Zähler
+für Speicher-Ladung und -Entladung der letzten 30 Tage aus. Bei Victron messen die am
+Shunt, also gleichstromseitig – genau die erste Stufe. Liegt das Verhältnis außerhalb
+von 0,80 bis 1,00, passen die beiden Zähler nicht zusammen; dann bleibt der typische
+LFP-Wert stehen und das Ergebnis vermerkt es. Der Vorschlag landet im Feld,
+gespeichert wird er erst mit **Speichern**.
 
 Der Wert wirkt doppelt: Er verringert die verschiebbare Menge, und er hebt die
-Schwelle, ab der sich eine Verschiebung überhaupt lohnt. Bei einem Ladepreis von
-19,5 ct/kWh muss der verdrängte Bezug bei 0,90 mindestens 21,6 ct kosten, bei 0,85
-schon 22,9 ct.
-
-Der Ladebedarf des Autos wird aus der Wallbox-Historie abgeleitet, sobald „Ladebedarf je
-Nacht“ auf 0 steht.
+Schwelle, ab der sich eine Verschiebung lohnt. Bei einem Ladepreis von 19,5 ct/kWh
+muss der verdrängte Bezug bei 0,90 mindestens 21,6 ct kosten, bei 0,85 schon 22,9 ct.
 
 ### Szenarien
 
 Standardmäßig aus:
 
-- **Speicher 60 kWh** – rechnet denselben Tag mit verdoppelter Kapazität, unveränderter Leistung.
+- **Speicher 60 kWh** – rechnet denselben Tag mit verdoppelter Kapazität, unveränderter
+  Leistung. Wie viel das bringt, hängt an der Netzladeleistung: mit 10,75 kW sind es im
+  Testtag +0,11 €, mit einem einzelnen Gerät nichts, weil in den günstigen Stunden
+  ohnehin nicht mehr nachladbar ist.
 - **Wärmepumpe** – zusätzlicher Netzbezug aus Jahresmenge und Monatsprofil.
 
 ## Was täglich passiert

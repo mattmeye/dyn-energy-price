@@ -7,8 +7,10 @@ from nsforecast.config import Battery
 
 
 def battery(**kwargs) -> Battery:
+    """Speicher mit runden Werten; Wandlerverluste stecken in den drei Stufen."""
     defaults = dict(nominal_kwh=30.0, soc_min_pct=10.0, soc_max_pct=100.0,
-                    charge_kw=10.0, discharge_kw=10.0, roundtrip_efficiency=0.9)
+                    mppt_charge_kw=10.0, grid_charge_kw_override=10.0, discharge_kw=10.0,
+                    battery_dc_efficiency=0.9, charger_efficiency=1.0, inverter_efficiency=1.0)
     defaults.update(kwargs)
     return Battery(**defaults)
 
@@ -30,7 +32,7 @@ def test_pv_bilanz_geht_auf():
 
 
 def test_ladeleistung_wird_eingehalten():
-    result = simulate_baseline([0.0] * 96, [5.0] * 96, battery(charge_kw=4.0), 0.0, 0.25)
+    result = simulate_baseline([0.0] * 96, [5.0] * 96, battery(mppt_charge_kw=4.0), 0.0, 0.25)
     assert max(result.pv_to_battery_kwh) <= 4.0 * 0.25 + 1e-9
 
 
@@ -53,9 +55,9 @@ def test_voller_speicher_speist_ein():
 
 def test_wirkungsgrad_kostet_energie():
     verlustfrei = simulate_baseline([0.0] * 4 + [1.0] * 4, [1.0] * 4 + [0.0] * 4,
-                                    battery(roundtrip_efficiency=1.0), 0.0, 0.25)
+                                    battery(battery_dc_efficiency=1.0), 0.0, 0.25)
     mit_verlust = simulate_baseline([0.0] * 4 + [1.0] * 4, [1.0] * 4 + [0.0] * 4,
-                                    battery(roundtrip_efficiency=0.8), 0.0, 0.25)
+                                    battery(battery_dc_efficiency=0.8), 0.0, 0.25)
     assert mit_verlust.total_import_kwh > verlustfrei.total_import_kwh
 
 
