@@ -377,6 +377,16 @@
     var lader = val("battery.charger_efficiency");
     var wr = val("battery.inverter_efficiency");
     var kopplung = ($("battery.pv_coupling") || {}).value === "ac" ? "ac" : "dc";
+
+    // Bei AC-Kopplung sind die MPPT-Regler nicht im Spiel.
+    var mpptRow = $("row-mppt");
+    if (mpptRow) mpptRow.hidden = kopplung === "ac";
+    var hinweis = $("row-coupling-hint");
+    if (hinweis) {
+      hinweis.firstElementChild.textContent = kopplung === "ac"
+        ? "PV und Netz laden über dieselben Ladegeräte: gleiche Leistungsgrenze, gleicher Wirkungsgrad, und was die PV gerade einspeichert, fehlt beim Netzladen."
+        : "Die PV lädt über die MPPT-Regler am Ladegerät vorbei: mehr Leistung und weniger Verlust auf diesem Weg.";
+    }
     var halb = Math.sqrt(Math.max(0.01, dc));
     var netz = halb * lader * halb * wr;
     var pv = (kopplung === "ac" ? halb * lader : halb) * halb * wr;

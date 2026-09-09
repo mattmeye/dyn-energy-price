@@ -32,7 +32,15 @@ def test_pv_bilanz_geht_auf():
 
 
 def test_ladeleistung_wird_eingehalten():
-    result = simulate_baseline([0.0] * 96, [5.0] * 96, battery(mppt_charge_kw=4.0), 0.0, 0.25)
+    """Bei DC-Kopplung begrenzen die MPPT-Regler den PV-Weg."""
+    speicher = battery(pv_coupling="dc", mppt_charge_kw=4.0)
+    result = simulate_baseline([0.0] * 96, [5.0] * 96, speicher, 0.0, 0.25)
+    assert max(result.pv_to_battery_kwh) <= 4.0 * 0.25 + 1e-9
+
+
+def test_bei_ac_kopplung_begrenzen_die_ladegeraete_den_pv_weg():
+    speicher = battery(pv_coupling="ac", mppt_charge_kw=30.0, grid_charge_kw_override=4.0)
+    result = simulate_baseline([0.0] * 96, [5.0] * 96, speicher, 0.0, 0.25)
     assert max(result.pv_to_battery_kwh) <= 4.0 * 0.25 + 1e-9
 
 

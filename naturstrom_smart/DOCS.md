@@ -48,11 +48,16 @@ Für die Bewertung sind es **drei verschiedene Wege**, nicht einer:
 
 | Weg | worüber | Vorbelegung |
 |---|---|---|
-| PV in den Speicher | DC-gekoppelt über die MPPT-Regler, AC-gekoppelt über die Ladegeräte | 10 kW (MPPT-Summe) |
+| PV in den Speicher | AC-gekoppelt über dieselben Ladegeräte | **10,75 kW**, geteilt mit dem Netz |
 | Netz in den Speicher | Ladegeräte der Wechselrichter | 3 × 70 A × 51,2 V = **10,75 kW** |
 | Speicher ins Haus | Wechselrichter | 3 × 4 kW = **12 kW** |
 
-Die Vorbelegung entspricht der Anlage: **3 × MultiPlus-II 48/5000/70, dreiphasig**.
+Die Vorbelegung entspricht der Anlage: **3 × MultiPlus-II 48/5000/70, dreiphasig,
+AC-gekoppelte PV**. Weil die PV über einen eigenen Wechselrichter einspeist, laden
+PV-Überschuss und Netz über dieselben Ladegeräte: Was die PV gerade einspeichert,
+steht im selben Moment nicht fürs Netzladen zur Verfügung, und beide Wege haben
+denselben Wirkungsgrad. Bei DC-Kopplung über MPPT-Regler wäre der PV-Weg getrennt,
+leistungsfähiger und verlustärmer – umstellbar in der Einrichtung.
 Der Ladestrom steht auf dem Typenschild hinter dem zweiten Schrägstrich; Anzahl und
 Strom werden eingetragen, die Netzladeleistung rechnet das Add-on daraus mit der
 Batteriespannung aus. Bei abweichenden Geräten also nur diese beiden Zahlen ändern.
@@ -102,8 +107,12 @@ Daraus ergeben sich zwei Wege, die das Add-on getrennt rechnet:
 
 - **Netz → Speicher → Haus: 0,848.** Maßgeblich für die Verschiebung, weil nur
   dieser Weg beim Verlagern des Netzbezugs durchlaufen wird.
-- **PV → Speicher → Haus: 0,912** bei DC-Kopplung, weil die MPPT-Regler am
-  Ladegerät vorbei laden. Bei AC-Kopplung sind es ebenfalls 0,848.
+- **PV → Speicher → Haus: 0,848** bei der AC-gekoppelten Anlage, weil auch die PV
+  durch die Ladegeräte muss. Bei DC-Kopplung wären es 0,912.
+
+Gegenüber einer DC-gekoppelten Anlage kostet das in der Übergangszeit 0,1 bis
+1,3 kWh Netzbezug am Tag – im Winter nichts, weil kaum PV in den Speicher geht,
+im Hochsommer nichts, weil der Speicher ohnehin voll wird.
 
 Der Standby der Geräte gehört in **keine** dieser Stufen. Er läuft unabhängig vom
 Laden und steckt bereits im gemessenen Verbrauchsprofil; hier wäre er doppelt gezählt.

@@ -56,6 +56,14 @@ def test_netzladeleistung_folgt_dem_typenschild():
 def test_ac_gekoppelte_pv_teilt_sich_die_ladegeraete():
     battery = Battery(pv_coupling="ac", mppt_charge_kw=30.0)
     assert battery.charge_kw == battery.grid_charge_kw
+    assert battery.pv_charge_kw == battery.grid_charge_kw
+    assert battery.pv_charge_efficiency == battery.grid_charge_efficiency
+
+
+def test_dc_kopplung_addiert_die_beiden_ladewege():
+    battery = Battery(pv_coupling="dc", mppt_charge_kw=8.0, grid_charge_kw_override=4.0)
+    assert battery.charge_kw == 12.0     # beide Wege können gleichzeitig liefern
+    assert battery.pv_charge_kw == 8.0
 
 
 def test_szenario_verdoppelt_nur_die_kapazitaet():

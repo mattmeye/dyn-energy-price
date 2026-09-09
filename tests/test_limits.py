@@ -53,7 +53,7 @@ def test_ohne_entitaeten_gelten_die_festen_werte():
     limits = resolve(FakeHass(), Battery())
     # 3 x MultiPlus-II 48/5000/70 an 51,2 V
     assert round(limits.grid_charge_kw, 2) == 10.75
-    assert round(limits.charge_kw, 2) == 20.75   # MPPT-Regler und Ladegeräte zusammen
+    assert round(limits.charge_kw, 2) == 10.75   # AC-gekoppelt: nur die Ladegeräte
     assert limits.discharge_kw == 12.0
     assert limits.sources["Ladeleistung"] == "fest eingestellt"
 
@@ -132,8 +132,8 @@ def test_mindest_soc_aus_der_entitaet():
 
 def test_apply_uebertraegt_die_leistungen():
     battery = Battery()
-    limits = resolve(FakeHass(), Battery(mppt_charge_kw=8.0, grid_charge_kw_override=2.0,
-                                        discharge_kw=6.0))
+    limits = resolve(FakeHass(), Battery(pv_coupling="dc", mppt_charge_kw=8.0,
+                                        grid_charge_kw_override=2.0, discharge_kw=6.0))
     updated = apply(battery, limits)
     assert updated.charge_kw == limits.charge_kw
     assert updated.grid_charge_kw == limits.grid_charge_kw
@@ -144,5 +144,5 @@ def test_unlesbare_entitaet_faellt_auf_den_festen_wert_zurueck():
     entities = Entities(battery_charge_limit="sensor.ccl")
     limits = resolve(FakeHass({"sensor.ccl": sensor("sensor.ccl", 70, "%")}),
                      Battery(mppt_charge_kw=9.0), entities)
-    assert round(limits.charge_kw, 2) == 19.75   # Ladeannahme bleibt der Gerätewert
+    assert round(limits.charge_kw, 2) == 10.75   # Ladeannahme bleibt der Gerätewert
     assert any("nicht auswertbar" in note for note in limits.notes)

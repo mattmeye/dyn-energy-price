@@ -20,6 +20,8 @@ Erste Fassung.
 - Wirkungsgrad in drei Stufen (Zellen, Ladegerät, Wechselrichter) statt einer Zahl,
   daraus getrennte Wege für Netz- und PV-Ladung; bei DC-gekoppelter PV entfällt der
   Ladegerät-Verlust.
+- PV-Anbindung einstellbar, vorbelegt mit AC-Kopplung: PV und Netz teilen sich dann
+  Ladegeräte und Wirkungsgrad.
 - Netzladeleistung aus dem Typenschild (Anzahl Geräte × Ladestrom × Batteriespannung),
   vorbelegt mit 3 × MultiPlus-II 48/5000/70 dreiphasig.
 - PV-Reserve ab Fensterbeginn statt ab Fensterende gerechnet; sonst konnte der

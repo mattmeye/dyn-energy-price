@@ -75,10 +75,11 @@ class Battery:
     # Wird gesetzt, wenn das BMS eine Ladestromgrenze meldet.
     charge_kw_override: float = 0.0
 
-    # Wie die PV angebunden ist: "dc" über MPPT-Regler direkt an den Speicher,
-    # "ac" über einen eigenen Wechselrichter. Bestimmt, ob PV-Ladung durch das
-    # Ladegerät läuft - und damit Ladeleistung und Wirkungsgrad dieses Weges.
-    pv_coupling: str = "dc"
+    # Wie die PV angebunden ist: "ac" über einen eigenen Wechselrichter, "dc"
+    # über MPPT-Regler direkt am Speicher. Bestimmt, ob die PV-Ladung durch die
+    # Ladegeräte läuft - und damit Leistung und Wirkungsgrad dieses Weges.
+    # Die Anlage ist AC-gekoppelt: PV und Netz teilen sich dieselben Ladegeräte.
+    pv_coupling: str = "ac"
     mppt_charge_kw: float = 10.0      # Summe der MPPT-Regler, nur bei "dc"
 
     # Dauer-Ausgangsleistung aller Geräte zusammen. MultiPlus-II 48/5000:
