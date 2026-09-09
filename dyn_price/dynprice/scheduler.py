@@ -23,7 +23,7 @@ class Scheduler(threading.Thread):
     """
 
     def __init__(self, runner: Runner, stop_event: threading.Event) -> None:
-        super().__init__(name="ns-scheduler", daemon=True)
+        super().__init__(name="dp-scheduler", daemon=True)
         self.runner = runner
         self.stop_event = stop_event
         self.last_success: date | None = None

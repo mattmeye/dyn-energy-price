@@ -15,7 +15,7 @@ from .scheduler import Scheduler
 from .store import Store
 from .web import serve
 
-_LOG = logging.getLogger("nsforecast")
+_LOG = logging.getLogger("dynprice")
 
 
 def main() -> int:
@@ -29,7 +29,7 @@ def main() -> int:
     runner = Runner(
         options=options,
         settings_store=SettingsStore(options.data_dir / "settings.json"),
-        store=Store(options.data_dir / "naturstrom.db"),
+        store=Store(options.data_dir / "dynprice.db"),
         hass=HomeAssistant(),
         prices=PriceProvider(options.data_dir / "cache"),
     )

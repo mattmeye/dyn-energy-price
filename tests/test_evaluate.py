@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from conftest import DAY, TZ, flat_history, night_cheap_prices, pv_state
 
-from nsforecast.evaluate import evaluate_day
-from nsforecast.forecast import HistoryBundle, build_day_forecast
-from nsforecast.timeutil import to_local
+from dynprice.evaluate import evaluate_day
+from dynprice.forecast import HistoryBundle, build_day_forecast
+from dynprice.timeutil import to_local
 
 
 def run(settings, slots, spot, start_energy=None, pv_kwh=3.0):
@@ -34,13 +34,13 @@ def test_flache_preise_ergeben_kein_fenster(settings, slots):
 
 def test_verschiebung_senkt_die_kosten(settings, slots):
     result = run(settings, slots, night_cheap_prices(slots), start_energy=0.0)
-    assert result.cost_smart_shifted_eur < result.cost_smart_unshifted_eur
+    assert result.cost_dynamic_shifted_eur < result.cost_dynamic_unshifted_eur
     assert result.saving_vs_fixed_eur > result.saving_vs_fixed_unshifted_eur
 
 
 def test_ohne_speichergrenzen_ist_nie_schlechter(settings, slots):
     result = run(settings, slots, night_cheap_prices(slots), start_energy=0.0)
-    assert result.cost_smart_ideal_eur <= result.cost_smart_shifted_eur + 1e-9
+    assert result.cost_dynamic_ideal_eur <= result.cost_dynamic_shifted_eur + 1e-9
     assert result.saving_vs_fixed_ideal_eur >= result.saving_vs_fixed_eur - 1e-9
 
 
@@ -106,7 +106,7 @@ def test_szenario_60_kwh_verschiebt_mehr(settings, slots):
     assert gross.battery_usable_kwh > standard.battery_usable_kwh
 
 
-def test_warnung_wenn_smart_teurer_waere(settings, slots):
+def test_warnung_wenn_dynamisch_teurer_waere(settings, slots):
     settings.tariff.fixed_price_ct = 20.0   # Fixtarif unter dem All-in-Preis
     result = run(settings, slots, [95.0] * len(slots), start_energy=0.0)
     assert result.saving_vs_fixed_eur < 0

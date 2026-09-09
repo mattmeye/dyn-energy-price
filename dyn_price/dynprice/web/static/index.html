@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>naturstrom smart Vorschau</title>
+<title>Dynamischer Strompreis</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <header>
-  <h1>naturstrom smart Vorschau</h1>
+  <h1>Dynamischer Strompreis</h1>
   <span class="sub" id="header-sub">wird geladen …</span>
   <span class="spacer"></span>
   <span class="badge neutral" id="ha-badge"><span class="dot"></span><span>Home Assistant</span></span>
@@ -164,10 +164,10 @@
         <legend>Tarife</legend>
         <div class="row"><label for="tariff.fixed_price_ct">Fixtarif (ct/kWh brutto)</label><input id="tariff.fixed_price_ct" type="number" step="0.01"></div>
         <div class="row"><label for="tariff.fixed_base_price_eur_month">Fixtarif Grundpreis (€/Monat)</label><input id="tariff.fixed_base_price_eur_month" type="number" step="0.01"></div>
-        <div class="row"><label for="tariff.grid_and_levies_ct">smart: Netz, Abgaben, Umlagen, Steuern (ct)</label><input id="tariff.grid_and_levies_ct" type="number" step="0.01"></div>
-        <div class="row"><label for="tariff.service_ct">smart: Servicepauschale (ct)</label><input id="tariff.service_ct" type="number" step="0.01"></div>
-        <div class="row"><label for="tariff.vat_factor">smart: Faktor auf den Börsenpreis</label><input id="tariff.vat_factor" type="number" step="0.01"></div>
-        <div class="row"><label for="tariff.base_price_eur_month">smart: Grundpreis (€/Monat)</label><input id="tariff.base_price_eur_month" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.grid_and_levies_ct">Dynamisch: Netz, Abgaben, Umlagen, Steuern (ct)</label><input id="tariff.grid_and_levies_ct" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.service_ct">Dynamisch: Servicepauschale (ct)</label><input id="tariff.service_ct" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.vat_factor">Dynamisch: Faktor auf den Börsenpreis</label><input id="tariff.vat_factor" type="number" step="0.01"></div>
+        <div class="row"><label for="tariff.base_price_eur_month">Dynamisch: Grundpreis (€/Monat)</label><input id="tariff.base_price_eur_month" type="number" step="0.01"></div>
       </fieldset>
 
       <fieldset>

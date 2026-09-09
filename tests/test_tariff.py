@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from nsforecast.config import Battery, Settings, SettingsStore
+from dynprice.config import Battery, Settings, SettingsStore
 
 
 def test_all_in_price_folgt_dem_tarifblatt():

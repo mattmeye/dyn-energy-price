@@ -387,9 +387,9 @@ class DayEvaluation:
     total_import_kwh: float
     total_pv_kwh: float
     cost_fixed_eur: float
-    cost_smart_unshifted_eur: float
-    cost_smart_shifted_eur: float
-    cost_smart_ideal_eur: float
+    cost_dynamic_unshifted_eur: float
+    cost_dynamic_shifted_eur: float
+    cost_dynamic_ideal_eur: float
     base_price_delta_eur: float
     saving_vs_fixed_eur: float
     saving_vs_fixed_unshifted_eur: float
@@ -447,9 +447,9 @@ class DayEvaluation:
             "storage": self.storage.as_dict(),
             "costs": {
                 "fixed_eur": round(self.cost_fixed_eur, 4),
-                "smart_unshifted_eur": round(self.cost_smart_unshifted_eur, 4),
-                "smart_shifted_eur": round(self.cost_smart_shifted_eur, 4),
-                "smart_ideal_eur": round(self.cost_smart_ideal_eur, 4),
+                "dynamic_unshifted_eur": round(self.cost_dynamic_unshifted_eur, 4),
+                "dynamic_shifted_eur": round(self.cost_dynamic_shifted_eur, 4),
+                "dynamic_ideal_eur": round(self.cost_dynamic_ideal_eur, 4),
                 "base_price_delta_eur": round(self.base_price_delta_eur, 4),
             },
             "savings": {
@@ -517,7 +517,7 @@ def evaluate_day(
     saving_vs_fixed = cost_fixed - cost_shifted - base_delta
     if saving_vs_fixed < -0.005:
         warnings.append(
-            f"naturstrom smart wäre am {forecast.day.isoformat()} voraussichtlich "
+            f"Der dynamische Tarif wäre am {forecast.day.isoformat()} voraussichtlich "
             f"{abs(saving_vs_fixed):.2f} EUR teurer als der Fixtarif"
         )
     if storage.verdict == "teilweise":
@@ -560,9 +560,9 @@ def evaluate_day(
         total_import_kwh=total_import,
         total_pv_kwh=forecast.total_pv_kwh,
         cost_fixed_eur=cost_fixed,
-        cost_smart_unshifted_eur=cost_unshifted,
-        cost_smart_shifted_eur=cost_shifted,
-        cost_smart_ideal_eur=cost_ideal,
+        cost_dynamic_unshifted_eur=cost_unshifted,
+        cost_dynamic_shifted_eur=cost_shifted,
+        cost_dynamic_ideal_eur=cost_ideal,
         base_price_delta_eur=base_delta,
         saving_vs_fixed_eur=saving_vs_fixed,
         saving_vs_fixed_unshifted_eur=cost_fixed - cost_unshifted - base_delta,

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from nsforecast.aggregate import conclusion, cumulative_savings, summarise
-from nsforecast.store import ActualRow, ForecastRow
+from dynprice.aggregate import conclusion, cumulative_savings, summarise
+from dynprice.store import ActualRow, ForecastRow
 
 
 def forecast_row(day, saving=1.0, binding=(), verdict="verschiebbar", unused=2.0, import_kwh=20.0):
@@ -31,7 +31,7 @@ def forecast_row(day, saving=1.0, binding=(), verdict="verschiebbar", unused=2.0
 def actual_row(day, saving=0.8):
     return ActualRow(day, "2026-11-21T06:00:00Z", {
         "status": "ok", "saving_eur": saving, "import_kwh": 21.0,
-        "cost_fixed_eur": 6.5, "cost_smart_eur": 5.2,
+        "cost_fixed_eur": 6.5, "cost_dynamic_eur": 5.2,
     })
 
 
@@ -72,7 +72,7 @@ def test_limitquoten():
 
 def test_teure_tage_werden_gezaehlt():
     rows = [forecast_row(date(2026, 11, 1), saving=-0.5), forecast_row(date(2026, 11, 2))]
-    assert summarise(rows, [], "month")[0].days_smart_more_expensive == 1
+    assert summarise(rows, [], "month")[0].days_dynamic_more_expensive == 1
 
 
 def test_kumulierte_ersparnis():

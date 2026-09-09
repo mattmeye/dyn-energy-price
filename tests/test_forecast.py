@@ -6,8 +6,8 @@ from datetime import date, datetime, timedelta, timezone
 
 from conftest import DAY, TZ, flat_history, pv_state
 
-from nsforecast.config import Settings
-from nsforecast.forecast import (
+from dynprice.config import Settings
+from dynprice.forecast import (
     HistoryBundle,
     build_day_forecast,
     build_load_profile,
@@ -16,9 +16,9 @@ from nsforecast.forecast import (
     heatpump_daily_kwh,
     reference_daily_kwh,
 )
-from nsforecast.pvforecast import clear_sky_shape, slot_profile
-from nsforecast.hass import EntityState
-from nsforecast.timeutil import slot_starts_utc, to_local
+from dynprice.pvforecast import clear_sky_shape, slot_profile
+from dynprice.hass import EntityState
+from dynprice.timeutil import slot_starts_utc, to_local
 
 
 def test_profil_trennt_werktag_und_wochenende():

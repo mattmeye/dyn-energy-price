@@ -20,7 +20,7 @@ _LOG = logging.getLogger(__name__)
 
 API_URL = "https://api.energy-charts.info/price"
 BIDDING_ZONE = "DE-LU"
-USER_AGENT = "naturstrom-smart-addon/0.1 (Home Assistant)"
+USER_AGENT = "dyn-price-addon/0.1 (Home Assistant)"
 
 
 class PricesUnavailable(RuntimeError):

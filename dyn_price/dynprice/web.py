@@ -157,7 +157,7 @@ class Api:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "naturstrom-smart"
+    server_version = "dyn-price"
     api: Api
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A003 - Signatur vorgegeben
@@ -253,7 +253,7 @@ class Handler(BaseHTTPRequestHandler):
 def serve(runner: Runner, scheduler: Scheduler | None, port: int) -> ThreadingHTTPServer:
     handler = type("BoundHandler", (Handler,), {"api": Api(runner, scheduler)})
     server = ThreadingHTTPServer(("0.0.0.0", port), handler)  # noqa: S104 - nur über Ingress erreichbar
-    thread = threading.Thread(target=server.serve_forever, name="ns-web", daemon=True)
+    thread = threading.Thread(target=server.serve_forever, name="dp-web", daemon=True)
     thread.start()
     _LOG.info("Weboberflaeche läuft auf Port %s", port)
     return server

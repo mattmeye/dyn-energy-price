@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from nsforecast.timeutil import in_window, iso_utc, parse_iso, slot_starts_utc, to_local, tzinfo
+from dynprice.timeutil import in_window, iso_utc, parse_iso, slot_starts_utc, to_local, tzinfo
 
 TZ = tzinfo("Europe/Berlin")
 

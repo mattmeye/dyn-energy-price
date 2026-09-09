@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from nsforecast.efficiency import (
+from dynprice.efficiency import (
     DEFAULT_CHARGER_EFFICIENCY,
     DEFAULT_INVERTER_EFFICIENCY,
     FALLBACK_DC_ROUNDTRIP,
@@ -12,7 +12,7 @@ from nsforecast.efficiency import (
     estimate,
     from_counters,
 )
-from nsforecast.hass import StatPoint
+from dynprice.hass import StatPoint
 
 
 class FakeHass:

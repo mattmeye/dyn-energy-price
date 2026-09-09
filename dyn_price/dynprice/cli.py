@@ -22,7 +22,7 @@ from .runner import Runner
 from .store import Store
 from .timeutil import UTC, slot_starts_utc, to_local
 
-_LOG = logging.getLogger("nsforecast.cli")
+_LOG = logging.getLogger("dynprice.cli")
 
 
 def _runner(args: argparse.Namespace) -> Runner:
@@ -32,7 +32,7 @@ def _runner(args: argparse.Namespace) -> Runner:
     return Runner(
         options=options,
         settings_store=SettingsStore(options.data_dir / "settings.json"),
-        store=Store(options.data_dir / "naturstrom.db"),
+        store=Store(options.data_dir / "dynprice.db"),
         hass=HomeAssistant(),
         prices=PriceProvider(options.data_dir / "cache", offline=getattr(args, "offline", False)),
     )
@@ -52,7 +52,7 @@ def _print_evaluation(payload: dict) -> None:
           f"{storage['needed_kwh']:.1f} kWh verschiebbar")
     for reason in storage["reasons"]:
         print(f"                    - {reason}")
-    print(f"Kosten              smart {payload['costs']['smart_shifted_eur']:.2f} EUR, "
+    print(f"Kosten              dynamisch {payload['costs']['dynamic_shifted_eur']:.2f} EUR, "
           f"fix {payload['costs']['fixed_eur']:.2f} EUR")
     print(f"Ersparnis           {savings['vs_fixed_eur']:.2f} EUR "
           f"(ohne Verschiebung {savings['vs_fixed_unshifted_eur']:.2f}, "
@@ -87,7 +87,7 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
         return 1
     runner.store.save_actual(day, payload)
     print(json.dumps(payload, ensure_ascii=False, indent=2) if args.json else
-          f"{day}: Bezug {payload['import_kwh']:.1f} kWh, smart {payload['cost_smart_eur']:.2f} EUR, "
+          f"{day}: Bezug {payload['import_kwh']:.1f} kWh, dynamisch {payload['cost_dynamic_eur']:.2f} EUR, "
           f"fix {payload['cost_fixed_eur']:.2f} EUR, Ersparnis {payload['saving_eur']:.2f} EUR")
     return 0
 
@@ -213,15 +213,15 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
         if day < end:  # für vergangene Tage einen Ist-Wert mit Streuung erzeugen
             actual_import = evaluation.total_import_kwh * rng.uniform(0.85, 1.2)
-            cost_smart = evaluation.cost_smart_shifted_eur * rng.uniform(0.9, 1.15)
+            cost_dynamic = evaluation.cost_dynamic_shifted_eur * rng.uniform(0.9, 1.15)
             cost_fixed = actual_import * settings.tariff.fixed_price_ct / 100.0
             runner.store.save_actual(day, {
                 "day": day.isoformat(),
                 "status": "ok",
                 "import_kwh": round(actual_import, 3),
-                "cost_smart_eur": round(cost_smart, 4),
+                "cost_dynamic_eur": round(cost_dynamic, 4),
                 "cost_fixed_eur": round(cost_fixed, 4),
-                "saving_eur": round(cost_fixed - cost_smart - evaluation.base_price_delta_eur, 4),
+                "saving_eur": round(cost_fixed - cost_dynamic - evaluation.base_price_delta_eur, 4),
                 "note": "Demodaten",
             })
         day += timedelta(days=1)
@@ -230,7 +230,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="nsforecast", description=__doc__)
+    parser = argparse.ArgumentParser(prog="dynprice", description=__doc__)
     parser.add_argument("--data-dir", help="Ablageort für Datenbank, Einstellungen und Preis-Cache")
     parser.add_argument("--log-level", default="warning")
     sub = parser.add_subparsers(dest="command", required=True)

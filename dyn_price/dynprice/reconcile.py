@@ -83,7 +83,7 @@ def actual_for_day(
 
     hourly_price = _hourly_all_in_ct(series, day, tz, settings)
     import_kwh = sum(value for _, value in grid_rows)
-    cost_smart = 0.0
+    cost_dynamic = 0.0
     missing_price_kwh = 0.0
     hourly: list[dict[str, float]] = []
     for moment, value in grid_rows:
@@ -91,7 +91,7 @@ def actual_for_day(
         if price is None:
             missing_price_kwh += value
             continue
-        cost_smart += value * price / 100.0
+        cost_dynamic += value * price / 100.0
         hourly.append(
             {
                 "hour_utc": moment.isoformat().replace("+00:00", "Z"),
@@ -104,7 +104,7 @@ def actual_for_day(
     cost_fixed = import_kwh * tariff.fixed_price_ct / 100.0
     days_in_month = calendar.monthrange(day.year, day.month)[1]
     base_delta = (tariff.base_price_eur_month - tariff.fixed_base_price_eur_month) / days_in_month
-    saving = cost_fixed - cost_smart - base_delta
+    saving = cost_fixed - cost_dynamic - base_delta
 
     pv_rows = counter_to_hourly(stats.get(entities.pv_production, []))
     ev_rows = counter_to_hourly(stats.get(entities.wallbox_energy, []))
@@ -115,11 +115,11 @@ def actual_for_day(
         "import_kwh": round(import_kwh, 3),
         "pv_kwh": round(sum(v for m, v in pv_rows if start_utc <= m < end_utc), 3),
         "ev_kwh": round(sum(v for m, v in ev_rows if start_utc <= m < end_utc), 3),
-        "cost_smart_eur": round(cost_smart, 4),
+        "cost_dynamic_eur": round(cost_dynamic, 4),
         "cost_fixed_eur": round(cost_fixed, 4),
         "base_price_delta_eur": round(base_delta, 4),
         "saving_eur": round(saving, 4),
-        "avg_price_ct": round(cost_smart * 100.0 / import_kwh, 3) if import_kwh > 1e-9 else 0.0,
+        "avg_price_ct": round(cost_dynamic * 100.0 / import_kwh, 3) if import_kwh > 1e-9 else 0.0,
         "hourly": hourly,
         "soc": _soc_series(hass, entities.battery_soc, start_utc, end_utc),
     }

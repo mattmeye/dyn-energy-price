@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from nsforecast.discovery import ROLES_BY_KEY, discover, score_entity, suggest
-from nsforecast.hass import EntityState
+from dynprice.discovery import ROLES_BY_KEY, discover, score_entity, suggest
+from dynprice.hass import EntityState
 
 
 def sensor(entity_id, name, unit, device_class="", state_class="", state="1.0"):

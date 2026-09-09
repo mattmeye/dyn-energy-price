@@ -1,11 +1,15 @@
-# naturstrom smart Vorschau
+# Dynamischer Strompreis
 
 Home-Assistant-Add-on, das **jeden Tag vorausschauend für den Folgetag** ermittelt:
 
-1. wie viel der dynamische Tarif **naturstrom smart** gegenüber dem Fixtarif (31 ct/kWh) einspart,
-   wenn der Netzbezug in die günstigsten Stunden verschoben wird,
+1. wie viel ein **dynamischer Stromtarif** gegenüber dem Fixtarif einspart, wenn der
+   Netzbezug in die günstigsten Stunden verschoben wird,
 2. ob der Batteriespeicher dafür rechnerisch genug **Kapazität und Leistung** hat,
 3. welche Energiemenge **nicht** verschiebbar ist und warum (Kapazität, Leistung, PV-Vorrang).
+
+Der Arbeitspreis wird aus dem Day-Ahead-Börsenpreis und den Bestandteilen des Tarifs
+gebildet; Netzentgelte, Abgaben, Servicepauschale, Steuerfaktor und Grundpreis sind
+frei einstellbar. Das Add-on ist an keinen Anbieter gebunden.
 
 Der Blick geht ausschließlich nach vorn: bewertet wird ab Inbetriebnahme, es gibt keine
 rückwirkende Auswertung vergangener Zeiträume. Jede Prognose wird abgelegt und später
@@ -18,25 +22,25 @@ die in eigenen Automationen genutzt werden können.
 
 1. In Home Assistant unter **Einstellungen → Add-ons → Add-on-Store → ⋮ → Repositories**
    dieses Repository hinzufügen: `https://github.com/mattmeye/dyn-energy-price`
-2. Das Add-on **naturstrom smart Vorschau** installieren und starten.
+2. Das Add-on **Dynamischer Strompreis** installieren und starten.
 3. Das Ingress-Panel öffnen und unter **Einrichtung** die Entitäten auswählen. Passende
    Sensoren werden automatisch erkannt und vorgeschlagen; die Speicherwerte sind mit
    30 kWh und 11 kW Wallbox vorbelegt.
 4. Speichern. Der erste Lauf startet sofort, danach täglich um 13:30 Uhr.
 
 Details zur Bedienung, zu den Rechenwegen und zu den Grenzen des Modells stehen in
-[naturstrom_smart/DOCS.md](naturstrom_smart/DOCS.md).
+[dyn_price/DOCS.md](dyn_price/DOCS.md).
 
 ## Aufbau des Repositories
 
 ```
 repository.yaml               Add-on-Repository für Home Assistant
-naturstrom_smart/             das Add-on
+dyn_price/             das Add-on
   config.yaml                 Add-on-Manifest (Ingress, Berechtigungen, Optionen)
   Dockerfile, build.yaml      Abbild auf Basis der HA-Python-Images
   run.sh                      Startskript (liest die Add-on-Optionen)
   DOCS.md                     Anwenderdokumentation
-  nsforecast/                 Python-Paket
+  dynprice/                 Python-Paket
     config.py                 Einstellungen und Add-on-Optionen
     hass.py                   REST- und WebSocket-Zugriff auf Home Assistant
     discovery.py              automatische Erkennung passender Entitäten
@@ -63,11 +67,11 @@ im Add-on gebraucht.
 ```bash
 python3 -m pytest                                   # Testsuite
 
-export PYTHONPATH=naturstrom_smart
-python3 -m nsforecast.cli --data-dir ./daten demo --days 60      # Beispieldaten
-python3 -m nsforecast.cli --data-dir ./daten serve --offline     # Oberfläche auf :8099
-python3 -m nsforecast.cli --data-dir ./daten evaluate --day 2026-09-09 --offline
-python3 -m nsforecast.cli --data-dir ./daten report
+export PYTHONPATH=dyn_price
+python3 -m dynprice.cli --data-dir ./daten demo --days 60      # Beispieldaten
+python3 -m dynprice.cli --data-dir ./daten serve --offline     # Oberfläche auf :8099
+python3 -m dynprice.cli --data-dir ./daten evaluate --day 2026-09-09 --offline
+python3 -m dynprice.cli --data-dir ./daten report
 ```
 
 Ein Lauf legt die Antwort von energy-charts im Cache ab. Damit ist derselbe Tag später

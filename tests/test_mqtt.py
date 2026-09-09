@@ -6,10 +6,10 @@ import json
 
 from conftest import DAY, TZ, flat_history, night_cheap_prices, pv_state
 
-from nsforecast.config import AddonOptions, SettingsStore
-from nsforecast.evaluate import evaluate_day
-from nsforecast.forecast import HistoryBundle, build_day_forecast
-from nsforecast.mqttpublish import (
+from dynprice.config import AddonOptions, SettingsStore
+from dynprice.evaluate import evaluate_day
+from dynprice.forecast import HistoryBundle, build_day_forecast
+from dynprice.mqttpublish import (
     OFFLINE,
     ONLINE,
     STATUS_TOPIC,
@@ -18,11 +18,11 @@ from nsforecast.mqttpublish import (
     messages,
     topics,
 )
-from nsforecast.prices import PriceProvider
-from nsforecast.publish import build_sensors
-from nsforecast.runner import Runner
-from nsforecast.store import Store
-from nsforecast.timeutil import slot_starts_utc
+from dynprice.prices import PriceProvider
+from dynprice.publish import build_sensors
+from dynprice.runner import Runner
+from dynprice.store import Store
+from dynprice.timeutil import slot_starts_utc
 
 
 def make_evaluation(settings, prices=None):
@@ -36,19 +36,19 @@ def make_evaluation(settings, prices=None):
 def test_discovery_topics_folgen_der_konvention(settings):
     sensor = build_sensors(make_evaluation(settings))[0]
     t = topics(sensor)
-    assert t["config"] == "homeassistant/sensor/naturstrom_smart/ersparnis_folgetag/config"
-    assert t["state"] == "naturstrom_smart/ersparnis_folgetag/state"
+    assert t["config"] == "homeassistant/sensor/dyn_price/ersparnis_folgetag/config"
+    assert t["state"] == "dyn_price/ersparnis_folgetag/state"
 
 
 def test_discovery_nutzlast_traegt_geraet_und_kennung(settings):
     sensor = build_sensors(make_evaluation(settings))[0]
     payload = discovery_payload(sensor)
-    assert payload["unique_id"] == "naturstrom_smart_ersparnis_folgetag"
-    assert payload["device"]["identifiers"] == ["naturstrom_smart"]
+    assert payload["unique_id"] == "dyn_price_ersparnis_folgetag"
+    assert payload["device"]["identifiers"] == ["dyn_price"]
     assert payload["unit_of_measurement"] == "EUR"
     assert payload["availability_mode"] == "all"
     assert {entry["topic"] for entry in payload["availability"]} == {
-        STATUS_TOPIC, "naturstrom_smart/ersparnis_folgetag/availability"
+        STATUS_TOPIC, "dyn_price/ersparnis_folgetag/availability"
     }
 
 
@@ -75,16 +75,16 @@ def test_fehlender_wert_wird_als_unverfuegbar_gemeldet(settings):
     """Ohne Ladefenster gibt es keinen Zeitstempel - dann lieber nicht verfügbar."""
     ohne_fenster = make_evaluation(settings, prices=[95.0] * 96)
     gesendet = dict((topic, payload) for topic, payload, _ in messages(ohne_fenster))
-    assert gesendet["naturstrom_smart/ladefenster_start/availability"] == OFFLINE
-    assert "naturstrom_smart/ladefenster_start/state" not in gesendet
+    assert gesendet["dyn_price/ladefenster_start/availability"] == OFFLINE
+    assert "dyn_price/ladefenster_start/state" not in gesendet
     # Werte, die es immer gibt, bleiben verfügbar.
-    assert gesendet["naturstrom_smart/tagespreis/availability"] == ONLINE
+    assert gesendet["dyn_price/tagespreis/availability"] == ONLINE
 
 
 def test_vorhandener_wert_wird_gesendet(settings):
     gesendet = dict((topic, payload) for topic, payload, _ in messages(make_evaluation(settings)))
-    assert gesendet["naturstrom_smart/ladefenster_start/availability"] == ONLINE
-    assert gesendet["naturstrom_smart/ladefenster_start/state"].endswith("Z")
+    assert gesendet["dyn_price/ladefenster_start/availability"] == ONLINE
+    assert gesendet["dyn_price/ladefenster_start/state"].endswith("Z")
 
 
 def test_jede_entitaet_bekommt_eine_discovery_nachricht(settings):
@@ -131,7 +131,7 @@ def test_ohne_broker_wird_die_zustands_api_genutzt(tmp_path, settings):
     anzahl, weg = runner.publish_result(settings, make_evaluation(settings))
     assert weg == "Zustands-API"
     assert anzahl == len(build_sensors(make_evaluation(settings)))
-    assert "sensor.naturstrom_smart_ersparnis_folgetag" in runner.hass.states
+    assert "sensor.dyn_price_ersparnis_folgetag" in runner.hass.states
 
 
 def test_mit_broker_wird_mqtt_bevorzugt(tmp_path, settings, monkeypatch):
@@ -143,7 +143,7 @@ def test_mit_broker_wird_mqtt_bevorzugt(tmp_path, settings, monkeypatch):
         gesendet["anzahl"] = len(messages(evaluation))
         return gesendet["anzahl"]
 
-    monkeypatch.setattr("nsforecast.mqttpublish.MqttPublisher.publish", fake_publish)
+    monkeypatch.setattr("dynprice.mqttpublish.MqttPublisher.publish", fake_publish)
     anzahl, weg = runner.publish_result(settings, make_evaluation(settings))
     assert weg == "MQTT"
     assert anzahl == gesendet["anzahl"]
@@ -175,7 +175,7 @@ def test_mqtt_fehler_faellt_auf_die_zustands_api_zurueck(tmp_path, settings, mon
     def kaputt(self, evaluation, timeout=15.0):
         raise OSError("Broker nicht erreichbar")
 
-    monkeypatch.setattr("nsforecast.mqttpublish.MqttPublisher.publish", kaputt)
+    monkeypatch.setattr("dynprice.mqttpublish.MqttPublisher.publish", kaputt)
     anzahl, weg = runner.publish_result(settings, make_evaluation(settings))
     assert weg == "Zustands-API"
     assert anzahl > 0

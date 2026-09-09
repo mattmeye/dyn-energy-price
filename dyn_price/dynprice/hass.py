@@ -73,9 +73,9 @@ class HomeAssistant:
         ws_url: str | None = None,
         timeout: float = 30.0,
     ) -> None:
-        self.base_url = (base_url or os.environ.get("NS_HA_URL") or DEFAULT_REST_URL).rstrip("/")
-        self.token = token or os.environ.get("NS_HA_TOKEN") or os.environ.get("SUPERVISOR_TOKEN") or ""
-        self.ws_url = ws_url or os.environ.get("NS_HA_WS_URL") or self._derive_ws_url()
+        self.base_url = (base_url or os.environ.get("DP_HA_URL") or DEFAULT_REST_URL).rstrip("/")
+        self.token = token or os.environ.get("DP_HA_TOKEN") or os.environ.get("SUPERVISOR_TOKEN") or ""
+        self.ws_url = ws_url or os.environ.get("DP_HA_WS_URL") or self._derive_ws_url()
         self.timeout = timeout
 
     def _derive_ws_url(self) -> str:

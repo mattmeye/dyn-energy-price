@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS forecasts (
     saving_eur REAL,
     saving_ideal_eur REAL,
     saving_unshifted_eur REAL,
-    cost_smart_eur REAL,
+    cost_dynamic_eur REAL,
     cost_fixed_eur REAL,
     window_start TEXT,
     window_end TEXT,
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS actuals (
     updated_at TEXT NOT NULL,
     payload TEXT NOT NULL,
     import_kwh REAL,
-    cost_smart_eur REAL,
+    cost_dynamic_eur REAL,
     cost_fixed_eur REAL,
     saving_eur REAL
 );
@@ -111,7 +111,7 @@ class Store:
             conn.execute(
                 """
                 INSERT INTO forecasts (day, scenario, generated_at, payload, import_kwh, pv_kwh,
-                    saving_eur, saving_ideal_eur, saving_unshifted_eur, cost_smart_eur, cost_fixed_eur,
+                    saving_eur, saving_ideal_eur, saving_unshifted_eur, cost_dynamic_eur, cost_fixed_eur,
                     window_start, window_end, window_price_ct, day_price_ct, verdict, needed_kwh,
                     shifted_kwh, unused_capacity_kwh, binding)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
@@ -120,7 +120,7 @@ class Store:
                     import_kwh=excluded.import_kwh, pv_kwh=excluded.pv_kwh,
                     saving_eur=excluded.saving_eur, saving_ideal_eur=excluded.saving_ideal_eur,
                     saving_unshifted_eur=excluded.saving_unshifted_eur,
-                    cost_smart_eur=excluded.cost_smart_eur, cost_fixed_eur=excluded.cost_fixed_eur,
+                    cost_dynamic_eur=excluded.cost_dynamic_eur, cost_fixed_eur=excluded.cost_fixed_eur,
                     window_start=excluded.window_start, window_end=excluded.window_end,
                     window_price_ct=excluded.window_price_ct, day_price_ct=excluded.day_price_ct,
                     verdict=excluded.verdict, needed_kwh=excluded.needed_kwh,
@@ -133,7 +133,7 @@ class Store:
                     payload["energy"]["import_kwh"], payload["energy"]["pv_kwh"],
                     payload["savings"]["vs_fixed_eur"], payload["savings"]["vs_fixed_ideal_eur"],
                     payload["savings"]["vs_fixed_unshifted_eur"],
-                    payload["costs"]["smart_shifted_eur"], payload["costs"]["fixed_eur"],
+                    payload["costs"]["dynamic_shifted_eur"], payload["costs"]["fixed_eur"],
                     window["start_utc"], window["end_utc"], window["avg_price_ct"],
                     payload["prices"]["day_avg_ct"], storage["verdict"], storage["needed_kwh"],
                     storage["shifted_kwh"], storage["unused_capacity_kwh"],
@@ -170,12 +170,12 @@ class Store:
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO actuals (day, updated_at, payload, import_kwh, cost_smart_eur,
+                INSERT INTO actuals (day, updated_at, payload, import_kwh, cost_dynamic_eur,
                     cost_fixed_eur, saving_eur)
                 VALUES (?,?,?,?,?,?,?)
                 ON CONFLICT(day) DO UPDATE SET
                     updated_at=excluded.updated_at, payload=excluded.payload,
-                    import_kwh=excluded.import_kwh, cost_smart_eur=excluded.cost_smart_eur,
+                    import_kwh=excluded.import_kwh, cost_dynamic_eur=excluded.cost_dynamic_eur,
                     cost_fixed_eur=excluded.cost_fixed_eur, saving_eur=excluded.saving_eur
                 """,
                 (
@@ -183,7 +183,7 @@ class Store:
                     iso_utc(datetime.now(tz=UTC)),
                     json.dumps(payload, ensure_ascii=False),
                     payload.get("import_kwh"),
-                    payload.get("cost_smart_eur"),
+                    payload.get("cost_dynamic_eur"),
                     payload.get("cost_fixed_eur"),
                     payload.get("saving_eur"),
                 ),

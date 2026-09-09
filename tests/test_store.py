@@ -6,10 +6,10 @@ from datetime import timedelta
 
 from conftest import DAY, TZ, flat_history, night_cheap_prices, pv_state
 
-from nsforecast.evaluate import evaluate_day
-from nsforecast.forecast import HistoryBundle, build_day_forecast
-from nsforecast.store import Store
-from nsforecast.timeutil import slot_starts_utc
+from dynprice.evaluate import evaluate_day
+from dynprice.forecast import HistoryBundle, build_day_forecast
+from dynprice.store import Store
+from dynprice.timeutil import slot_starts_utc
 
 
 def make_evaluation(settings, day=DAY):

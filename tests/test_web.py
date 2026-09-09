@@ -9,15 +9,15 @@ from urllib.error import HTTPError
 import pytest
 from conftest import DAY, TZ, flat_history, night_cheap_prices, pv_state
 
-from nsforecast.config import AddonOptions, SettingsStore
-from nsforecast.evaluate import evaluate_day
-from nsforecast.forecast import HistoryBundle, build_day_forecast
-from nsforecast.hass import EntityState
-from nsforecast.prices import PriceProvider
-from nsforecast.runner import Runner
-from nsforecast.store import Store
-from nsforecast.timeutil import slot_starts_utc
-from nsforecast.web import serve
+from dynprice.config import AddonOptions, SettingsStore
+from dynprice.evaluate import evaluate_day
+from dynprice.forecast import HistoryBundle, build_day_forecast
+from dynprice.hass import EntityState
+from dynprice.prices import PriceProvider
+from dynprice.runner import Runner
+from dynprice.store import Store
+from dynprice.timeutil import slot_starts_utc
+from dynprice.web import serve
 
 
 class FakeHass:
@@ -63,7 +63,7 @@ def server(tmp_path, settings):
                               settings.scenario_battery(), None, start_energy_kwh=0.0)
     store.save_forecast(evaluation)
     store.save_actual(DAY, {"status": "ok", "saving_eur": 1.2, "import_kwh": 22.0,
-                            "cost_fixed_eur": 6.8, "cost_smart_eur": 5.2})
+                            "cost_fixed_eur": 6.8, "cost_dynamic_eur": 5.2})
 
     runner = Runner(
         options=AddonOptions(data_dir=tmp_path, port=0),
@@ -100,7 +100,7 @@ def test_status(server):
 def test_startseite_wird_ausgeliefert(server):
     with urllib.request.urlopen(f"{server}/", timeout=5) as response:
         body = response.read().decode("utf-8")
-    assert "naturstrom smart" in body
+    assert "Dynamischer Strompreis" in body
     assert response.headers["Content-Type"].startswith("text/html")
 
 

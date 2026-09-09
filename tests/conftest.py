@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "naturstrom_smart"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dyn_price"))
 
-from nsforecast.config import Settings  # noqa: E402
-from nsforecast.forecast import HistoryBundle, build_day_forecast  # noqa: E402
-from nsforecast.hass import EntityState  # noqa: E402
-from nsforecast.timeutil import slot_starts_utc, to_local, tzinfo  # noqa: E402
+from dynprice.config import Settings  # noqa: E402
+from dynprice.forecast import HistoryBundle, build_day_forecast  # noqa: E402
+from dynprice.hass import EntityState  # noqa: E402
+from dynprice.timeutil import slot_starts_utc, to_local, tzinfo  # noqa: E402
 
 TZ = tzinfo("Europe/Berlin")
 DAY = date(2026, 11, 20)

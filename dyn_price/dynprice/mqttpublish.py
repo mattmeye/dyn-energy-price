@@ -53,7 +53,7 @@ def _device() -> dict[str, Any]:
         "identifiers": [PREFIX],
         "name": DEVICE_NAME,
         "manufacturer": "mattmeye",
-        "model": "naturstrom smart Vorschau",
+        "model": "Dynamischer Strompreis",
     }
 
 

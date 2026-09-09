@@ -1,8 +1,13 @@
-# naturstrom smart Vorschau
+# Dynamischer Strompreis
 
-Bewertet täglich vorausschauend, ob sich der dynamische Tarif **naturstrom smart** am
-Folgetag gegenüber dem Fixtarif lohnt, und prüft, ob der Batteriespeicher die dafür
-nötige Verschiebung des Netzbezugs überhaupt tragen kann.
+Bewertet täglich vorausschauend, ob sich ein **dynamischer Stromtarif** am Folgetag
+gegenüber dem Fixtarif lohnt, und prüft, ob der Batteriespeicher die dafür nötige
+Verschiebung des Netzbezugs überhaupt tragen kann.
+
+Der Tarif wird über seine Bestandteile beschrieben, nicht über einen Anbieternamen:
+ein fester Anteil je kWh (Netzentgelte, Abgaben, Umlagen, Steuern), eine
+Servicepauschale, ein Faktor auf den Börsenpreis und ein monatlicher Grundpreis.
+Damit lässt sich jeder Tarif abbilden, dessen Arbeitspreis am Day-Ahead-Preis hängt.
 
 ## Einrichtung
 
@@ -162,17 +167,27 @@ Fehlen sie noch, wird alle 20 Minuten erneut versucht, längstens bis 23 Uhr. Ab
    Je Fenster wird die günstigste Ladung gegen den teuersten Netzbezug **danach**
    aufgerechnet, begrenzt durch freie Kapazität, Ladeleistung im Fenster und
    Entladeleistung im Bezugsslot. Gewählt wird das Fenster mit der größten Ersparnis.
-7. **Speicherprüfung**, **Ablage** in `/data/naturstrom.db`, **Entitäten** in Home
+7. **Speicherprüfung**, **Ablage** in `/data/dynprice.db`, **Entitäten** in Home
    Assistant, **Nachtrag** der Ist-Werte vergangener Tage.
 
 ### Tarifformel
 
 ```
-All-in-Arbeitspreis [ct/kWh] = 15,29 + 1,19 + Börsenpreis netto [ct/kWh] × 1,19
+All-in-Arbeitspreis [ct/kWh] = fester Anteil + Servicepauschale
+                             + Börsenpreis netto [ct/kWh] × Faktor
 ```
 
-Dazu 15,74 €/Monat Grundpreis, tageweise anteilig in die Ersparnis eingerechnet.
-Fixtarif: 31 ct/kWh. Alle Werte sind in der Einrichtung änderbar.
+| Bestandteil | Vorbelegung | Bedeutung |
+|---|---|---|
+| fester Anteil | 15,29 ct | Netzentgelte, Abgaben, Umlagen, Steuern |
+| Servicepauschale | 1,19 ct | Aufschlag des Anbieters je kWh |
+| Faktor auf den Börsenpreis | 1,19 | Umsatzsteuer auf den Day-Ahead-Preis |
+| Grundpreis | 15,74 €/Monat | tageweise anteilig gegen den Fixtarif gerechnet |
+| Fixtarif | 31 ct/kWh | Vergleichsmaßstab, Grundpreis getrennt einstellbar |
+
+Die Vorbelegung entspricht einem dynamischen Tarif nach Tarifblatt Stand September 2026.
+Alle Werte stehen in der Einrichtung und lassen sich auf jeden anderen Tarif umstellen,
+dessen Arbeitspreis am Day-Ahead-Preis hängt.
 
 ### Speicherprüfung
 
@@ -195,15 +210,15 @@ gegen 10 kW Speicher) und **PV-Vorrang**.
 
 | Entität | Einheit | Inhalt |
 |---|---|---|
-| `sensor.naturstrom_smart_ersparnis_folgetag` | EUR | Ersparnis gegenüber Fixtarif, inkl. Grundpreisanteil |
-| `sensor.naturstrom_smart_ladefenster_start` | Zeitstempel | Beginn des empfohlenen Fensters |
-| `sensor.naturstrom_smart_ladefenster_ende` | Zeitstempel | Ende des Fensters |
-| `sensor.naturstrom_smart_ladefenster_preis` | ct/kWh | mengengewichteter Preis im Fenster |
-| `sensor.naturstrom_smart_tagespreis` | ct/kWh | Tagesmittel ohne Verschiebung |
-| `sensor.naturstrom_smart_netzbezug_prognose` | kWh | erwarteter Netzbezug |
-| `sensor.naturstrom_smart_verschiebbare_energie` | kWh | tatsächlich verschiebbare Menge |
-| `sensor.naturstrom_smart_speicherstatus` | – | ausreichend / limitiert / nicht ausreichend |
-| `binary_sensor.naturstrom_smart_guenstiger_als_fixtarif` | on/off | Vergleich mit dem Fixtarif |
+| `sensor.dyn_price_ersparnis_folgetag` | EUR | Ersparnis gegenüber Fixtarif, inkl. Grundpreisanteil |
+| `sensor.dyn_price_ladefenster_start` | Zeitstempel | Beginn des empfohlenen Fensters |
+| `sensor.dyn_price_ladefenster_ende` | Zeitstempel | Ende des Fensters |
+| `sensor.dyn_price_ladefenster_preis` | ct/kWh | mengengewichteter Preis im Fenster |
+| `sensor.dyn_price_tagespreis` | ct/kWh | Tagesmittel ohne Verschiebung |
+| `sensor.dyn_price_netzbezug_prognose` | kWh | erwarteter Netzbezug |
+| `sensor.dyn_price_verschiebbare_energie` | kWh | tatsächlich verschiebbare Menge |
+| `sensor.dyn_price_speicherstatus` | – | ausreichend / limitiert / nicht ausreichend |
+| `binary_sensor.dyn_price_guenstiger_als_fixtarif` | on/off | Vergleich mit dem Fixtarif |
 
 Die Attribute enthalten die Details: Gründe der Begrenzung, freie und benötigte Kapazität,
 Ersparnis ohne Verschiebung und ohne Speichergrenzen.
@@ -212,7 +227,7 @@ Ersparnis ohne Verschiebung und ohne Speichergrenzen.
 
 | Weg | Voraussetzung | Verhalten |
 |---|---|---|
-| **MQTT-Discovery** | ein Broker, üblicherweise das Add-on Mosquitto | Echte Entitäten im Geräteregister: überstehen einen Neustart von Home Assistant, lassen sich umbenennen, in Dashboards ziehen und in Automationen auswählen. Alle Nachrichten sind retained, das Gerät heißt *naturstrom smart Vorschau*. |
+| **MQTT-Discovery** | ein Broker, üblicherweise das Add-on Mosquitto | Echte Entitäten im Geräteregister: überstehen einen Neustart von Home Assistant, lassen sich umbenennen, in Dashboards ziehen und in Automationen auswählen. Alle Nachrichten sind retained, das Gerät heißt *Dynamischer Strompreis*. |
 | **Zustands-API** | nichts weiter | Notnagel ohne Broker. Die Entitäten sind nach einem Neustart von Home Assistant weg, bis das Add-on erneut rechnet – es tut das beim eigenen Start. |
 
 Voreingestellt ist **Automatisch**: Ist ein Broker vorhanden, nimmt das Add-on MQTT,
@@ -231,11 +246,11 @@ automation:
     trigger:
       - platform: template
         value_template: >-
-          {{ now() >= states('sensor.naturstrom_smart_ladefenster_start') | as_datetime
-             and now() < states('sensor.naturstrom_smart_ladefenster_ende') | as_datetime }}
+          {{ now() >= states('sensor.dyn_price_ladefenster_start') | as_datetime
+             and now() < states('sensor.dyn_price_ladefenster_ende') | as_datetime }}
     condition:
       - condition: state
-        entity_id: sensor.naturstrom_smart_speicherstatus
+        entity_id: sensor.dyn_price_speicherstatus
         state: "limitiert"
     action: []   # hier den eigenen Speicher ansteuern
 ```

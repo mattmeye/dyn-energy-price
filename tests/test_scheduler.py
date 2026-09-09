@@ -7,8 +7,8 @@ from datetime import date, datetime, timedelta
 
 from conftest import TZ
 
-from nsforecast.config import AddonOptions
-from nsforecast.scheduler import Scheduler
+from dynprice.config import AddonOptions
+from dynprice.scheduler import Scheduler
 
 
 class FakeRunner:

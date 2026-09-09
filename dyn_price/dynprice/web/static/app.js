@@ -42,7 +42,7 @@
     verschiebbar: { text: "ausreichend", cls: "good" },
     teilweise: { text: "limitiert", cls: "warn" },
     nicht_verschiebbar: { text: "nicht ausreichend", cls: "bad" },
-    nicht_noetig: { text: "keine Verschiebung nötig", cls: "neutral" }
+    nicht_noetig: { text: "nicht nötig", cls: "neutral" }
   };
 
   /* ------------------------------------------------------------ Navigation */
@@ -103,7 +103,7 @@
         "PV-Prognose " + fmt(payload.energy.pv_kwh, 1) + " kWh"),
       tile("Speicher", badge,
         fmt(storage.shifted_kwh, 1) + " von " + fmt(storage.needed_kwh, 1) + " kWh verschiebbar"),
-      tile("Kosten des Tages", fmt(payload.costs.smart_shifted_eur) + " €",
+      tile("Kosten des Tages", fmt(payload.costs.dynamic_shifted_eur) + " €",
         "Fixtarif " + fmt(payload.costs.fixed_eur) + " € · Grundpreisanteil " +
         fmt(payload.costs.base_price_delta_eur) + " €")
     ].join("");
@@ -153,7 +153,7 @@
     }
 
     C.legend($("legend-price"), [
-      { name: "All-in-Arbeitspreis smart", color: "var(--series-1)" },
+      { name: "All-in-Arbeitspreis dynamisch", color: "var(--series-1)" },
       { name: "Fixtarif", color: "var(--series-2)" }
     ]);
     C.priceChart($("chart-price"), {

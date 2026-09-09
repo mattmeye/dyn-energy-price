@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from nsforecast.prices import (
+from dynprice.prices import (
     PricePoint,
     PriceProvider,
     PriceSeries,
@@ -14,7 +14,7 @@ from nsforecast.prices import (
     _parse_energy_charts,
     load_csv,
 )
-from nsforecast.timeutil import day_bounds_utc, slot_starts_utc, tzinfo
+from dynprice.timeutil import day_bounds_utc, slot_starts_utc, tzinfo
 
 TZ = tzinfo("Europe/Berlin")
 DAY = date(2026, 9, 9)

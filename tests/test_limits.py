@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from nsforecast.config import Battery, Entities
-from nsforecast.hass import EntityState, StatPoint
-from nsforecast.limits import apply, power_kw, resolve
+from dynprice.config import Battery, Entities
+from dynprice.hass import EntityState, StatPoint
+from dynprice.limits import apply, power_kw, resolve
 
 
 def sensor(entity_id, value, unit):

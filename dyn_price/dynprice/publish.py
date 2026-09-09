@@ -17,8 +17,8 @@ from .timeutil import iso_utc
 
 _LOG = logging.getLogger(__name__)
 
-PREFIX = "naturstrom_smart"
-DEVICE_NAME = "naturstrom smart Vorschau"
+PREFIX = "dyn_price"
+DEVICE_NAME = "Dynamischer Strompreis"
 
 VERDICT_TEXT = {
     "verschiebbar": "ausreichend",
@@ -78,7 +78,7 @@ def build_sensors(evaluation: DayEvaluation) -> list[SensorSpec]:
                 "ohne_verschiebung_eur": round(evaluation.saving_vs_fixed_unshifted_eur, 2),
                 "ohne_speichergrenzen_eur": round(evaluation.saving_vs_fixed_ideal_eur, 2),
                 "grundpreisanteil_eur": round(evaluation.base_price_delta_eur, 2),
-                "kosten_smart_eur": round(evaluation.cost_smart_shifted_eur, 2),
+                "kosten_dynamisch_eur": round(evaluation.cost_dynamic_shifted_eur, 2),
                 "kosten_fixtarif_eur": round(evaluation.cost_fixed_eur, 2),
             },
         ),
@@ -176,7 +176,7 @@ def build_sensors(evaluation: DayEvaluation) -> list[SensorSpec]:
 
 def rest_attributes(sensor: SensorSpec) -> dict[str, Any]:
     """Attribute für die Zustands-API; Einheit und Klassen gehören dort hinein."""
-    attributes: dict[str, Any] = {"friendly_name": f"naturstrom smart {sensor.name}"}
+    attributes: dict[str, Any] = {"friendly_name": f"Strompreis {sensor.name}"}
     if sensor.unit:
         attributes["unit_of_measurement"] = sensor.unit
     if sensor.device_class:

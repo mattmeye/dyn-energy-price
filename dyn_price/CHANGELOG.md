@@ -4,9 +4,14 @@
 
 Erste Fassung.
 
+Das Add-on ist an keinen Anbieter gebunden: Der Tarif wird über seine Bestandteile
+beschrieben (fester Anteil je kWh, Servicepauschale, Faktor auf den Börsenpreis,
+Grundpreis), die Vorbelegung entspricht einem dynamischen Tarif nach Tarifblatt
+Stand September 2026.
+
 - Tägliche Bewertung des Folgetags: günstigstes Ladefenster, Ø All-in-Preis mit und ohne
   Verschiebung, erwarteter Netzbezug, Ersparnis gegenüber dem Fixtarif mit und ohne
-  Speichergrenzen, Warnung wenn smart teurer wäre.
+  Speichergrenzen, Warnung wenn der dynamische Tarif teurer wäre.
 - Speicherprüfung mit Verdikt und benannten Gründen (Kapazität, Lade-, Entladeleistung,
   PV-Vorrang).
 - Day-Ahead-Preise DE-LU von api.energy-charts.info mit lokalem Cache, dadurch offline

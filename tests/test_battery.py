@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from nsforecast.battery import classify, pv_reserve_after, simulate_baseline
-from nsforecast.config import Battery
+from dynprice.battery import classify, pv_reserve_after, simulate_baseline
+from dynprice.config import Battery
 
 
 def battery(**kwargs) -> Battery:

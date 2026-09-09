@@ -20,11 +20,11 @@ class PeriodSummary:
     forecast_import_kwh: float = 0.0
     actual_import_kwh: float = 0.0
     cost_fixed_eur: float = 0.0
-    cost_smart_eur: float = 0.0
+    cost_dynamic_eur: float = 0.0
     days_capacity_limited: int = 0
     days_power_limited: int = 0
     days_fully_shiftable: int = 0
-    days_smart_more_expensive: int = 0
+    days_dynamic_more_expensive: int = 0
     unused_capacity_kwh: float = 0.0
     needed_kwh: float = 0.0
     shifted_kwh: float = 0.0
@@ -61,11 +61,11 @@ class PeriodSummary:
             "forecast_import_kwh": round(self.forecast_import_kwh, 1),
             "actual_import_kwh": round(self.actual_import_kwh, 1),
             "cost_fixed_eur": round(self.cost_fixed_eur, 2),
-            "cost_smart_eur": round(self.cost_smart_eur, 2),
+            "cost_dynamic_eur": round(self.cost_dynamic_eur, 2),
             "days_capacity_limited": self.days_capacity_limited,
             "days_power_limited": self.days_power_limited,
             "days_fully_shiftable": self.days_fully_shiftable,
-            "days_smart_more_expensive": self.days_smart_more_expensive,
+            "days_dynamic_more_expensive": self.days_dynamic_more_expensive,
             "share_capacity_limited": round(self.share_capacity_limited, 3),
             "share_power_limited": round(self.share_power_limited, 3),
             "avg_unused_capacity_kwh": round(self.avg_unused_capacity_kwh, 2),
@@ -95,7 +95,7 @@ def _add_forecast(summary: PeriodSummary, row: ForecastRow) -> None:
     if storage.get("verdict") in {"verschiebbar", "nicht_noetig"}:
         summary.days_fully_shiftable += 1
     if float(savings.get("vs_fixed_eur", 0.0)) < 0:
-        summary.days_smart_more_expensive += 1
+        summary.days_dynamic_more_expensive += 1
 
 
 def _add_actual(summary: PeriodSummary, row: ActualRow) -> None:
@@ -106,7 +106,7 @@ def _add_actual(summary: PeriodSummary, row: ActualRow) -> None:
     summary.realised_saving_eur += float(payload.get("saving_eur", 0.0))
     summary.actual_import_kwh += float(payload.get("import_kwh", 0.0))
     summary.cost_fixed_eur += float(payload.get("cost_fixed_eur", 0.0))
-    summary.cost_smart_eur += float(payload.get("cost_smart_eur", 0.0))
+    summary.cost_dynamic_eur += float(payload.get("cost_dynamic_eur", 0.0))
 
 
 def summarise(
@@ -172,7 +172,7 @@ def conclusion(summaries: Sequence[PeriodSummary]) -> list[str]:
         total.unshifted_saving_eur += summary.unshifted_saving_eur
         total.days_capacity_limited += summary.days_capacity_limited
         total.days_power_limited += summary.days_power_limited
-        total.days_smart_more_expensive += summary.days_smart_more_expensive
+        total.days_dynamic_more_expensive += summary.days_dynamic_more_expensive
         total.unused_capacity_kwh += summary.unused_capacity_kwh
         total.forecast_import_kwh += summary.forecast_import_kwh
         total.actual_import_kwh += summary.actual_import_kwh
@@ -200,9 +200,9 @@ def conclusion(summaries: Sequence[PeriodSummary]) -> list[str]:
             f"Im günstigen Fenster blieben im Mittel "
             f"{total.unused_capacity_kwh / total.days:.1f} kWh Speicher ungenutzt."
         )
-        if total.days_smart_more_expensive:
+        if total.days_dynamic_more_expensive:
             lines.append(
-                f"An {total.days_smart_more_expensive} Tagen wäre smart teurer gewesen als der Fixtarif."
+                f"An {total.days_dynamic_more_expensive} Tagen wäre der dynamische Tarif teurer gewesen."
             )
     if total.days:
         lines.append(f"Mittlere Ersparnis je Tag: {total.forecast_saving_eur / total.days:.2f} EUR.")

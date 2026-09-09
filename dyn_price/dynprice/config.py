@@ -194,7 +194,11 @@ class HeatPump:
 
 @dataclass
 class Tariff:
-    """naturstrom smart gegen Fixtarif, alle Werte brutto."""
+    """Dynamischer Tarif gegen Fixtarif, alle Werte brutto.
+
+    Vorbelegt mit den Werten eines dynamischen Tarifs nach Tarifblatt Stand
+    September 2026; alle Bestandteile sind in der Einrichtung änderbar.
+    """
 
     grid_and_levies_ct: float = 15.29   # Netz, Abgaben, Umlagen, Steuern
     service_ct: float = 1.19            # Servicepauschale
@@ -317,7 +321,7 @@ class AddonOptions:
     @classmethod
     def from_env(cls) -> "AddonOptions":
         opts = cls()
-        options_file = Path(os.environ.get("NS_OPTIONS_FILE", "/data/options.json"))
+        options_file = Path(os.environ.get("DP_OPTIONS_FILE", "/data/options.json"))
         if options_file.is_file():
             try:
                 raw = json.loads(options_file.read_text(encoding="utf-8"))
@@ -329,13 +333,13 @@ class AddonOptions:
             opts.timezone = str(raw.get("timezone", opts.timezone))
             opts.price_source = str(raw.get("price_source", opts.price_source))
         # Umgebungsvariablen haben Vorrang (run.sh setzt sie aus bashio).
-        opts.log_level = os.environ.get("NS_LOG_LEVEL", opts.log_level)
-        opts.run_hour = int(os.environ.get("NS_RUN_HOUR", opts.run_hour))
-        opts.run_minute = int(os.environ.get("NS_RUN_MINUTE", opts.run_minute))
-        opts.timezone = os.environ.get("NS_TIMEZONE", opts.timezone)
-        opts.price_source = os.environ.get("NS_PRICE_SOURCE", opts.price_source)
-        opts.data_dir = Path(os.environ.get("NS_DATA_DIR", str(opts.data_dir)))
-        opts.port = int(os.environ.get("NS_PORT", opts.port))
+        opts.log_level = os.environ.get("DP_LOG_LEVEL", opts.log_level)
+        opts.run_hour = int(os.environ.get("DP_RUN_HOUR", opts.run_hour))
+        opts.run_minute = int(os.environ.get("DP_RUN_MINUTE", opts.run_minute))
+        opts.timezone = os.environ.get("DP_TIMEZONE", opts.timezone)
+        opts.price_source = os.environ.get("DP_PRICE_SOURCE", opts.price_source)
+        opts.data_dir = Path(os.environ.get("DP_DATA_DIR", str(opts.data_dir)))
+        opts.port = int(os.environ.get("DP_PORT", opts.port))
         return opts
 
 
