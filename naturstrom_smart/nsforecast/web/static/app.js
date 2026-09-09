@@ -405,6 +405,7 @@
       });
     });
     setValue("publish_sensors", settings.publish_sensors);
+    setValue("sensor_mode", settings.sensor_mode);
     showEfficiency();
     ["battery.battery_dc_efficiency", "battery.charger_efficiency",
      "battery.inverter_efficiency", "battery.pv_coupling"].forEach(function (id) {

@@ -17,6 +17,8 @@ panel_title: "naturstrom smart"
 panel_admin: true
 homeassistant_api: true
 hassio_api: true
+services:
+  - "mqtt:want"
 options:
   log_level: "info"
   run_hour: 13

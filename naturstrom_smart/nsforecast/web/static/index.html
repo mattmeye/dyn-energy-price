@@ -187,7 +187,14 @@
         <div class="row"><label for="heatpump.enabled">Wärmepumpe berücksichtigen</label><input id="heatpump.enabled" type="checkbox"></div>
         <div class="row"><label for="heatpump.annual_kwh">Wärmepumpe: Jahresmenge (kWh)</label><input id="heatpump.annual_kwh" type="number" step="10"></div>
         <div class="row"><label for="heatpump.shiftable_share">Wärmepumpe: verschiebbarer Anteil (0–1)</label><input id="heatpump.shiftable_share" type="number" step="0.05"></div>
-        <div class="row"><label for="publish_sensors">Sensoren in Home Assistant schreiben</label><input id="publish_sensors" type="checkbox"></div>
+        <div class="row"><label for="publish_sensors">Entitäten in Home Assistant bereitstellen</label><input id="publish_sensors" type="checkbox"></div>
+        <div class="row"><label for="sensor_mode">Übertragungsweg</label>
+          <select id="sensor_mode">
+            <option value="auto">Automatisch – MQTT, wenn ein Broker da ist</option>
+            <option value="mqtt">Nur MQTT</option>
+            <option value="rest">Nur Zustands-API</option>
+          </select></div>
+        <div class="row"><span class="hint">Über MQTT entstehen dauerhafte Entitäten, die einen Neustart von Home Assistant überstehen und in Automationen auswählbar sind. Ohne Broker bleibt die Zustands-API – die Entitäten sind dann nach jedem Neustart erst wieder da, wenn das Add-on erneut rechnet.</span></div>
       </fieldset>
 
       <fieldset>

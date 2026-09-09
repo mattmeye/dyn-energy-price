@@ -1,8 +1,14 @@
-"""Ergebnisse als Home-Assistant-Zustände bereitstellen."""
+"""Ergebnisse als Home-Assistant-Entitäten beschreiben und über die Zustands-API setzen.
+
+Die Definition der Entitäten steht hier einmal; wie sie zu Home Assistant kommen,
+entscheiden die Backends: MQTT-Discovery (dauerhaft, im Geräteregister) oder die
+Zustands-API (ohne Zusatzdienst, aber flüchtig).
+"""
 
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 from .evaluate import DayEvaluation
@@ -12,6 +18,7 @@ from .timeutil import iso_utc
 _LOG = logging.getLogger(__name__)
 
 PREFIX = "naturstrom_smart"
+DEVICE_NAME = "naturstrom smart Vorschau"
 
 VERDICT_TEXT = {
     "verschiebbar": "ausreichend",
@@ -21,106 +28,127 @@ VERDICT_TEXT = {
 }
 
 
-def _entity(name: str, domain: str = "sensor") -> str:
-    return f"{domain}.{PREFIX}_{name}"
+@dataclass(frozen=True)
+class SensorSpec:
+    """Eine Entität, unabhängig vom Übertragungsweg beschrieben."""
+
+    key: str
+    name: str
+    state: str | None                 # None = Wert unbekannt
+    domain: str = "sensor"
+    unit: str | None = None
+    device_class: str | None = None
+    state_class: str | None = None
+    icon: str | None = None
+    attributes: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def entity_id(self) -> str:
+        return f"{self.domain}.{PREFIX}_{self.key}"
+
+    @property
+    def unique_id(self) -> str:
+        return f"{PREFIX}_{self.key}"
 
 
-def build_states(evaluation: DayEvaluation) -> list[tuple[str, str, dict[str, Any]]]:
-    """Liste aus Entity-ID, Zustand und Attributen."""
+def build_sensors(evaluation: DayEvaluation) -> list[SensorSpec]:
+    """Alle Entitäten für ein Tagesergebnis."""
     storage = evaluation.storage
-    common = {"prognose_fuer": evaluation.day.isoformat(), "erstellt": iso_utc(evaluation.generated_at)}
+    gemeinsam = {
+        "prognose_fuer": evaluation.day.isoformat(),
+        "erstellt": iso_utc(evaluation.generated_at),
+        "szenario": evaluation.scenario,
+    }
+    fixtarif_ct = (
+        round(evaluation.cost_fixed_eur * 100.0 / evaluation.total_import_kwh, 2)
+        if evaluation.total_import_kwh > 1e-9
+        else None
+    )
 
-    states: list[tuple[str, str, dict[str, Any]]] = [
-        (
-            _entity("ersparnis_folgetag"),
-            f"{evaluation.saving_vs_fixed_eur:.2f}",
-            {
-                **common,
-                "friendly_name": "naturstrom smart Ersparnis Folgetag",
-                "unit_of_measurement": "EUR",
-                "device_class": "monetary",
-                "icon": "mdi:cash",
+    return [
+        SensorSpec(
+            key="ersparnis_folgetag",
+            name="Ersparnis Folgetag",
+            state=f"{evaluation.saving_vs_fixed_eur:.2f}",
+            unit="EUR",
+            state_class="measurement",
+            icon="mdi:cash",
+            attributes={
+                **gemeinsam,
                 "ohne_verschiebung_eur": round(evaluation.saving_vs_fixed_unshifted_eur, 2),
                 "ohne_speichergrenzen_eur": round(evaluation.saving_vs_fixed_ideal_eur, 2),
                 "grundpreisanteil_eur": round(evaluation.base_price_delta_eur, 2),
+                "kosten_smart_eur": round(evaluation.cost_smart_shifted_eur, 2),
+                "kosten_fixtarif_eur": round(evaluation.cost_fixed_eur, 2),
             },
         ),
-        (
-            _entity("ladefenster_start"),
-            iso_utc(evaluation.window_start_utc) if evaluation.window_start_utc else "unknown",
-            {
-                **common,
-                "friendly_name": "naturstrom smart Ladefenster Start",
-                "device_class": "timestamp",
-                "icon": "mdi:clock-start",
-            },
+        SensorSpec(
+            key="ladefenster_start",
+            name="Ladefenster Start",
+            state=iso_utc(evaluation.window_start_utc) if evaluation.window_start_utc else None,
+            device_class="timestamp",
+            icon="mdi:clock-start",
+            attributes=dict(gemeinsam),
         ),
-        (
-            _entity("ladefenster_ende"),
-            iso_utc(evaluation.window_end_utc) if evaluation.window_end_utc else "unknown",
-            {
-                **common,
-                "friendly_name": "naturstrom smart Ladefenster Ende",
-                "device_class": "timestamp",
-                "icon": "mdi:clock-end",
-            },
+        SensorSpec(
+            key="ladefenster_ende",
+            name="Ladefenster Ende",
+            state=iso_utc(evaluation.window_end_utc) if evaluation.window_end_utc else None,
+            device_class="timestamp",
+            icon="mdi:clock-end",
+            attributes=dict(gemeinsam),
         ),
-        (
-            _entity("ladefenster_preis"),
-            f"{evaluation.window_avg_price_ct:.2f}",
-            {
-                **common,
-                "friendly_name": "naturstrom smart Ladefenster Preis",
-                "unit_of_measurement": "ct/kWh",
-                "icon": "mdi:tag-arrow-down",
-            },
+        SensorSpec(
+            key="ladefenster_preis",
+            name="Ladefenster Preis",
+            state=f"{evaluation.window_avg_price_ct:.2f}" if evaluation.window_start_utc else None,
+            unit="ct/kWh",
+            state_class="measurement",
+            icon="mdi:tag-arrow-down",
+            attributes=dict(gemeinsam),
         ),
-        (
-            _entity("tagespreis"),
-            f"{evaluation.day_avg_price_ct:.2f}",
-            {
-                **common,
-                "friendly_name": "naturstrom smart Tagespreis ohne Verschiebung",
-                "unit_of_measurement": "ct/kWh",
-                "icon": "mdi:tag",
+        SensorSpec(
+            key="tagespreis",
+            name="Tagespreis ohne Verschiebung",
+            state=f"{evaluation.day_avg_price_ct:.2f}",
+            unit="ct/kWh",
+            state_class="measurement",
+            icon="mdi:tag",
+            attributes={
+                **gemeinsam,
                 "guenstigster_slot_ct": round(evaluation.cheapest_slot_price_ct, 2),
-                "fixtarif_ct": round(evaluation.cost_fixed_eur * 100.0 / evaluation.total_import_kwh, 2)
-                if evaluation.total_import_kwh > 1e-9
-                else None,
+                "fixtarif_ct": fixtarif_ct,
             },
         ),
-        (
-            _entity("netzbezug_prognose"),
-            f"{evaluation.total_import_kwh:.2f}",
-            {
-                **common,
-                "friendly_name": "naturstrom smart Netzbezug Prognose",
-                "unit_of_measurement": "kWh",
-                "device_class": "energy",
-                "icon": "mdi:transmission-tower-import",
-                "pv_prognose_kwh": round(evaluation.total_pv_kwh, 2),
-            },
+        SensorSpec(
+            key="netzbezug_prognose",
+            name="Netzbezug Prognose",
+            state=f"{evaluation.total_import_kwh:.2f}",
+            unit="kWh",
+            state_class="measurement",
+            icon="mdi:transmission-tower-import",
+            attributes={**gemeinsam, "pv_prognose_kwh": round(evaluation.total_pv_kwh, 2)},
         ),
-        (
-            _entity("verschiebbare_energie"),
-            f"{storage.shifted_kwh:.2f}",
-            {
-                **common,
-                "friendly_name": "naturstrom smart verschiebbare Energie",
-                "unit_of_measurement": "kWh",
-                "device_class": "energy",
-                "icon": "mdi:swap-horizontal",
+        SensorSpec(
+            key="verschiebbare_energie",
+            name="Verschiebbare Energie",
+            state=f"{storage.shifted_kwh:.2f}",
+            unit="kWh",
+            state_class="measurement",
+            icon="mdi:swap-horizontal",
+            attributes={
+                **gemeinsam,
                 "bedarf_kwh": round(storage.needed_kwh, 2),
                 "nicht_verschiebbar_kwh": round(storage.not_shifted_kwh, 2),
             },
         ),
-        (
-            _entity("speicherstatus"),
-            VERDICT_TEXT.get(storage.verdict, storage.verdict),
-            {
-                **common,
-                "friendly_name": "naturstrom smart Speicherstatus",
-                "icon": "mdi:battery-check",
+        SensorSpec(
+            key="speicherstatus",
+            name="Speicherstatus",
+            state=VERDICT_TEXT.get(storage.verdict, storage.verdict),
+            icon="mdi:battery-check",
+            attributes={
+                **gemeinsam,
                 "verdikt": storage.verdict,
                 "gruende": storage.reasons,
                 "begrenzt_durch": storage.binding,
@@ -128,30 +156,58 @@ def build_states(evaluation: DayEvaluation) -> list[tuple[str, str, dict[str, An
                 "benoetigte_ladung_kwh": round(storage.capacity_needed_kwh, 2),
                 "ungenutzte_kapazitaet_kwh": round(storage.unused_capacity_kwh, 2),
                 "pv_reserviert_kwh": round(storage.pv_reserved_kwh, 2),
+                "netzladeleistung_kw": round(storage.charge_power_available_kw, 2),
             },
         ),
-        (
-            _entity("guenstiger_als_fixtarif", domain="binary_sensor"),
-            "on" if evaluation.saving_vs_fixed_eur >= 0 else "off",
-            {
-                **common,
-                "friendly_name": "naturstrom smart günstiger als Fixtarif",
-                "icon": "mdi:scale-balance",
+        SensorSpec(
+            key="guenstiger_als_fixtarif",
+            name="Günstiger als Fixtarif",
+            domain="binary_sensor",
+            state="on" if evaluation.saving_vs_fixed_eur >= 0 else "off",
+            icon="mdi:scale-balance",
+            attributes={
+                **gemeinsam,
                 "ersparnis_eur": round(evaluation.saving_vs_fixed_eur, 2),
                 "warnungen": evaluation.warnings,
             },
         ),
     ]
-    return states
+
+
+def rest_attributes(sensor: SensorSpec) -> dict[str, Any]:
+    """Attribute für die Zustands-API; Einheit und Klassen gehören dort hinein."""
+    attributes: dict[str, Any] = {"friendly_name": f"naturstrom smart {sensor.name}"}
+    if sensor.unit:
+        attributes["unit_of_measurement"] = sensor.unit
+    if sensor.device_class:
+        attributes["device_class"] = sensor.device_class
+    if sensor.state_class:
+        attributes["state_class"] = sensor.state_class
+    if sensor.icon:
+        attributes["icon"] = sensor.icon
+    attributes.update(sensor.attributes)
+    return attributes
 
 
 def publish(hass: HomeAssistant, evaluation: DayEvaluation) -> int:
-    """Zustände schreiben; gibt die Zahl der erfolgreich gesetzten Entitäten zurück."""
+    """Über die Zustands-API setzen. Die Entitäten überleben keinen HA-Neustart."""
     written = 0
-    for entity_id, state, attributes in build_states(evaluation):
+    for sensor in build_sensors(evaluation):
         try:
-            hass.set_state(entity_id, state, attributes)
+            hass.set_state(
+                sensor.entity_id,
+                sensor.state if sensor.state is not None else "unknown",
+                rest_attributes(sensor),
+            )
             written += 1
         except HomeAssistantError as err:
-            _LOG.warning("Konnte %s nicht setzen: %s", entity_id, err)
+            _LOG.warning("Konnte %s nicht setzen: %s", sensor.entity_id, err)
     return written
+
+
+# Rückwärtskompatibel für Aufrufer, die die alte Form erwarten.
+def build_states(evaluation: DayEvaluation) -> list[tuple[str, str, dict[str, Any]]]:
+    return [
+        (s.entity_id, s.state if s.state is not None else "unknown", rest_attributes(s))
+        for s in build_sensors(evaluation)
+    ]

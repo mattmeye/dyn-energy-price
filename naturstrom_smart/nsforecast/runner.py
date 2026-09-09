@@ -15,7 +15,8 @@ from .hass import HomeAssistant, StatPoint, counter_to_hourly
 from .limits import apply as apply_limits
 from .limits import resolve as resolve_limits
 from .prices import PriceProvider, PricesUnavailable
-from .publish import publish
+from .mqttpublish import MqttPublisher, broker_from_supervisor
+from .publish import publish as publish_via_rest
 from .reconcile import backfill
 from .store import Store
 from .timeutil import SLOT_HOURS, UTC, slot_starts_utc, tzinfo
@@ -246,13 +247,13 @@ class Runner:
             return {"status": "fehler", "message": str(err), "day": day.isoformat()}
 
         self.store.save_forecast(evaluation)
-        published = 0
+        published, weg = 0, "aus"
         if publish_states and settings.publish_sensors and self.hass.configured:
-            published = publish(self.hass, evaluation)
+            published, weg = self.publish_result(settings, evaluation)
 
         message = (
             f"Ersparnis {evaluation.saving_vs_fixed_eur:.2f} EUR, "
-            f"Speicher {evaluation.storage.verdict}, {published} Entitäten"
+            f"Speicher {evaluation.storage.verdict}, Entitäten über {weg}"
         )
         self.store.finish_run(run_id, "ok", message)
         return {
@@ -261,6 +262,37 @@ class Runner:
             "published": published,
             "evaluation": evaluation.as_dict(),
         }
+
+    def broker(self) -> Any:
+        """Zugangsdaten des MQTT-Brokers, einmal je Laufzeit ermittelt."""
+        if not hasattr(self, "_broker"):
+            self._broker = broker_from_supervisor(self.hass.token)
+            if self._broker:
+                _LOG.info("MQTT-Broker %s:%s gefunden", self._broker.host, self._broker.port)
+        return self._broker
+
+    def publish_result(self, settings: Settings, evaluation: DayEvaluation) -> tuple[int, str]:
+        """Entitäten bereitstellen: bevorzugt über MQTT, sonst über die Zustands-API.
+
+        MQTT-Discovery legt echte Entitäten an, die einen Neustart von Home
+        Assistant überstehen; die Zustands-API ist der Notnagel ohne Broker.
+        """
+        modus = settings.sensor_mode
+        if modus in {"auto", "mqtt"}:
+            broker = self.broker()
+            if broker is not None:
+                try:
+                    return MqttPublisher(broker).publish(evaluation), "MQTT"
+                except Exception as err:
+                    _LOG.warning("MQTT-Veröffentlichung fehlgeschlagen: %s", err)
+                    if modus == "mqtt":
+                        return 0, "MQTT (fehlgeschlagen)"
+            elif modus == "mqtt":
+                _LOG.warning("Kein MQTT-Broker verfügbar, keine Entitäten geschrieben")
+                return 0, "MQTT (kein Broker)"
+        if modus == "mqtt":
+            return 0, "MQTT (fehlgeschlagen)"
+        return publish_via_rest(self.hass, evaluation), "Zustands-API"
 
     def run_daily(self) -> dict[str, Any]:
         """Regellauf: Folgetag bewerten und offene Ist-Werte nachtragen."""

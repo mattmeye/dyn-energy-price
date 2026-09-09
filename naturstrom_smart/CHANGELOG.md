@@ -15,7 +15,8 @@ Erste Fassung.
   PV-Prognose aus der Forecast.Solar-Entität.
 - Ablage jeder Prognose, Nachtrag der Ist-Werte, Monats- und Jahresauswertung.
 - Ingress-Oberfläche mit Einrichtungsassistent, Diagrammen und Verlauf.
-- Ergebnisse als Entitäten in Home Assistant.
+- Ergebnisse als Entitäten in Home Assistant, über MQTT-Discovery (dauerhaft, im
+  Geräteregister) mit Rückfall auf die Zustands-API, wenn kein Broker da ist.
 - Optionale Szenarien: Speicher 60 kWh, Wärmepumpe.
 - Wirkungsgrad in drei Stufen (Zellen, Ladegerät, Wechselrichter) statt einer Zahl,
   daraus getrennte Wege für Netz- und PV-Ladung; bei DC-gekoppelter PV entfällt der

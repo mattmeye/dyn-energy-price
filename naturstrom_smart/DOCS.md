@@ -208,6 +208,21 @@ gegen 10 kW Speicher) und **PV-Vorrang**.
 Die Attribute enthalten die Details: Gründe der Begrenzung, freie und benötigte Kapazität,
 Ersparnis ohne Verschiebung und ohne Speichergrenzen.
 
+### Zwei Wege, ein Ergebnis
+
+| Weg | Voraussetzung | Verhalten |
+|---|---|---|
+| **MQTT-Discovery** | ein Broker, üblicherweise das Add-on Mosquitto | Echte Entitäten im Geräteregister: überstehen einen Neustart von Home Assistant, lassen sich umbenennen, in Dashboards ziehen und in Automationen auswählen. Alle Nachrichten sind retained, das Gerät heißt *naturstrom smart Vorschau*. |
+| **Zustands-API** | nichts weiter | Notnagel ohne Broker. Die Entitäten sind nach einem Neustart von Home Assistant weg, bis das Add-on erneut rechnet – es tut das beim eigenen Start. |
+
+Voreingestellt ist **Automatisch**: Ist ein Broker vorhanden, nimmt das Add-on MQTT,
+sonst die Zustands-API. Der Weg steht in der Einrichtung unter *Szenarien* und im
+Laufprotokoll (`Entitäten über MQTT` bzw. `über Zustands-API`).
+
+Fehlt ein Wert – etwa der Zeitstempel des Ladefensters an einem Tag ohne lohnendes
+Fenster –, wird die betroffene Entität über MQTT als *nicht verfügbar* gemeldet statt
+mit einem Ersatzwert gefüllt.
+
 Beispiel für eine Automation:
 
 ```yaml
@@ -225,9 +240,7 @@ automation:
     action: []   # hier den eigenen Speicher ansteuern
 ```
 
-Die Zustände werden über die Kern-API geschrieben. Nach einem Neustart von Home Assistant
-sind sie erst wieder da, wenn das Add-on erneut rechnet – es tut das automatisch beim
-eigenen Start.
+
 
 ## Auswertung
 
@@ -244,6 +257,9 @@ Langzeitstatistik und die tatsächlichen Preise des Tages.
 | `run_hour`, `run_minute` | 13:30 | Startzeit des täglichen Laufs |
 | `timezone` | `Europe/Berlin` | Zeitzone für Tagesgrenzen und Anzeige |
 | `price_source` | `energy-charts` | Quelle der Day-Ahead-Preise |
+
+Der MQTT-Dienst wird als `mqtt:want` angefordert: Ist ein Broker installiert, bekommt
+das Add-on dessen Zugangsdaten vom Supervisor, ohne dass etwas einzutragen wäre.
 
 Alles Weitere steht in der Oberfläche und liegt in `/data/settings.json`.
 

@@ -238,6 +238,9 @@ class Settings:
     forecast: ForecastSettings = field(default_factory=ForecastSettings)
     scenarios: Scenarios = field(default_factory=Scenarios)
     publish_sensors: bool = True
+    # "auto" nimmt MQTT, wenn ein Broker bereitsteht, sonst die Zustands-API.
+    # "mqtt" erzwingt MQTT, "rest" erzwingt die Zustands-API.
+    sensor_mode: str = "auto"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

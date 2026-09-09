@@ -259,6 +259,30 @@ class HomeAssistant:
                 pass
 
 
+def supervisor_service(name: str, token: str | None = None, timeout: float = 10.0) -> dict | None:
+    """Verbindungsdaten eines vom Supervisor bereitgestellten Dienstes, z. B. mqtt.
+
+    Setzt voraus, dass das Add-on den Dienst in config.yaml anfordert. Ist er
+    nicht vorhanden, kommt None zurück - dann bleibt nur die Zustands-API.
+    """
+    bearer = token or os.environ.get("SUPERVISOR_TOKEN") or ""
+    if not bearer:
+        return None
+    request = Request(
+        f"http://supervisor/services/{name}",
+        headers={"Authorization": f"Bearer {bearer}"},
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=timeout) as response:  # noqa: S310 - feste Supervisor-URL
+            payload = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as err:
+        _LOG.info("Dienst %s nicht verfügbar: %s", name, err)
+        return None
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data or None
+
+
 def _stat_start(value: Any) -> datetime | None:
     """Statistik-Zeitstempel: je nach HA-Version ISO-String oder Millisekunden."""
     if value is None:
