@@ -1,7 +1,7 @@
 name: "naturstrom smart Vorschau"
 version: "0.1.0"
 slug: "naturstrom_smart"
-description: "Bewertet taeglich vorausschauend, ob der dynamische Tarif naturstrom smart am Folgetag guenstiger ist als der Fixtarif, und prueft ob der Batteriespeicher die Verschiebung tragen kann."
+description: "Bewertet täglich vorausschauend, ob naturstrom smart am Folgetag günstiger ist als der Fixtarif, und prüft, ob der Batteriespeicher die Verschiebung tragen kann."
 url: "https://github.com/mattmeye/dyn-energy-price"
 arch:
   - aarch64
